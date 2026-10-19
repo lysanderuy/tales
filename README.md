@@ -40,9 +40,8 @@ Reusable full-stack boilerplate: Next.js 16 + Supabase + Drizzle + Zod.
    - **URL Configuration → Redirect URLs**: add
      `http://localhost:3000/api/auth/callback` (+ production URL later).
      Confirmation and recovery emails bounce without this.
-   - **Email**: confirm and recovery emails use Supabase's built-in sender
-     (rate-limited, ~2/hour). Turn off "Confirm email" under Providers → Email
-     to skip confirmation.
+   - **Email**: confirmation stays on. Confirm and recovery emails use
+     Supabase's built-in sender (rate-limited, ~2/hour).
 
 4. Apply the bundled example schema — or remove it first (see
    [Removing the example](#removing-the-profiles-example)):
@@ -176,13 +175,14 @@ reference implementation of the layering — replace per project.
 
 ## Auth
 
-Working end-to-end: signup → login →
+Working end-to-end: signup → email confirm (`/api/auth/callback`) → login →
 protected `/dashboard` → logout.
 
 - **Password recovery**: `/forgot-password` emails a link that lands on
   `/reset-password` (via the callback's `next` param) with a recovery session.
-- **Email verification**: optional, set in Supabase. Login surfaces callback
-  errors (e.g. expired links) from `?error=`.
+- **Email verification**: enforced by Supabase (unconfirmed users can't sign
+  in). Login and signup offer a resend button; login surfaces callback errors
+  (e.g. expired links) from `?error=`.
 - **Route protection**: `src/proxy.ts` redirects unauthenticated hits on
   `protectedPrefixes` (extend per project); pages still check `getUser()`
   themselves — defense in depth.

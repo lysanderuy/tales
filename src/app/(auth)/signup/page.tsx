@@ -12,6 +12,8 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -46,7 +48,27 @@ export default function SignupPage() {
     }
 
     setLoading(false);
+    setSubmittedEmail(parsed.data.email);
     setEmailSent(true);
+  }
+
+  async function handleResend() {
+    if (!submittedEmail) return;
+
+    const supabase = createClient();
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email: submittedEmail,
+      options: { emailRedirectTo: `${location.origin}/api/auth/callback` },
+    });
+
+    if (resendError) {
+      setError(resendError.message);
+      return;
+    }
+
+    setError(null);
+    setResent(true);
   }
 
   if (emailSent) {
@@ -56,6 +78,18 @@ export default function SignupPage() {
         <p className="text-sm text-foreground/70">
           We sent you a confirmation link. Click it to finish creating your account.
         </p>
+        {error && <p className="text-sm text-red-500">{error}</p>}
+        {resent ? (
+          <p className="text-sm text-foreground/70">Confirmation email sent again.</p>
+        ) : (
+          <button
+            type="button"
+            onClick={handleResend}
+            className="text-sm underline hover:text-foreground/70"
+          >
+            Didn&apos;t get it? Resend
+          </button>
+        )}
       </div>
     );
   }

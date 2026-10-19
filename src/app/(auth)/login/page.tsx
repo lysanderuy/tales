@@ -18,16 +18,20 @@ export default function LoginPage() {
 
 function LoginForm() {
   const router = useRouter();
-  // Errors passed by /api/auth/callback (e.g. expired link).
+  // Errors passed by /api/auth/callback (e.g. expired confirmation link).
   const callbackError = useSearchParams().get("error");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
 
-  const displayError = error ?? callbackError;
+  const displayError = error ?? (resent ? null : callbackError);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setUnconfirmedEmail(null);
+    setResent(false);
 
     const parsed = signInSchema.safeParse(Object.fromEntries(new FormData(event.currentTarget)));
     if (!parsed.success) {
@@ -41,12 +45,34 @@ function LoginForm() {
 
     if (authError) {
       setLoading(false);
+      if (authError.code === "email_not_confirmed") {
+        setUnconfirmedEmail(parsed.data.email);
+      }
       setError(authError.message);
       return;
     }
 
     router.push("/dashboard");
     router.refresh();
+  }
+
+  async function handleResend() {
+    if (!unconfirmedEmail) return;
+
+    const supabase = createClient();
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email: unconfirmedEmail,
+      options: { emailRedirectTo: `${location.origin}/api/auth/callback` },
+    });
+
+    if (resendError) {
+      setError(resendError.message);
+      return;
+    }
+
+    setError(null);
+    setResent(true);
   }
 
   return (
@@ -85,6 +111,18 @@ function LoginForm() {
         </label>
 
         {displayError && <p className="text-sm text-red-500">{displayError}</p>}
+        {unconfirmedEmail && !resent && (
+          <button
+            type="button"
+            onClick={handleResend}
+            className="text-sm underline hover:text-foreground/70"
+          >
+            Resend confirmation email
+          </button>
+        )}
+        {resent && (
+          <p className="text-sm text-foreground/70">Confirmation email sent — check your inbox.</p>
+        )}
 
         <button
           type="submit"
