@@ -6,7 +6,6 @@ import { QueryProvider } from "@/lib/query/provider";
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   axes: ["opsz"],
   display: "swap",
 });
