@@ -32,14 +32,6 @@ page/client component → TanStack Query hook (src/hooks) → api wrapper (src/l
 6. UI: `src/app/` + `src/components/` consuming the hook
 7. Docs: register the endpoint in `src/lib/api/openapi.ts` (path entry + `.meta()` on new/changed validator fields) — not auto-derived from the route file
 
-## Adding an optional integration
-
-External services with an API key (Upstash, etc.) — see `src/lib/rate-limit.ts`:
-
-1. Add the env var(s) to `src/lib/env.ts` as `.optional()`, and to `.env.example`.
-2. Lazily construct the client on first use, never at module top level — breaks `next build` on a fresh clone with no env vars set.
-3. No-op or throw a clear "not configured" error if unset — never crash silently or block the app from booting.
-
 ## Hard rules
 
 - **Every new table's migration must include `ALTER TABLE "<name>" ENABLE ROW LEVEL SECURITY;`** (no policies needed). `npm run db:migrate` runs a guardrail that fails otherwise. Reason: Drizzle bypasses RLS, but Supabase's PostgREST (`/rest/v1`) exposes any public table without RLS to the anon key.
@@ -48,7 +40,6 @@ External services with an API key (Upstash, etc.) — see `src/lib/rate-limit.ts
 - Server env vars go through `src/lib/env.ts` (Zod-validated, server-only import). Client code uses `process.env.NEXT_PUBLIC_*` directly.
 - Server state lives in TanStack Query; client-only UI state in Zustand (`src/stores/*.store.ts`). Never mirror API data into a store.
 - New protected routes: add the prefix to `protectedPrefixes` in `src/lib/supabase/proxy.ts` AND check `getUser()` in the page/route itself.
-- New abuse-prone routes: add a stricter entry to the `overrides` array in `src/lib/rate-limit.ts` (mirrors the `protectedPrefixes` pattern). Rate limiting is per-IP, scoped to `/api/**` only, and no-ops if `UPSTASH_REDIS_REST_URL`/`TOKEN` aren't set — don't treat that as a bug to fix.
 - `/api/openapi.json`, `/api/auth/callback` and `/api/auth/logout` are the deliberate exceptions to "every route returns `ApiResponse<T>`" — openapi.json serves the raw spec for external tooling (Scalar, codegen); the auth routes are browser redirects, not JSON calls. `/api/docs` (Scalar UI) and `/api/openapi.json` are public/unauthenticated by design; gate them if that's ever a concern. The spec (`src/lib/api/openapi.ts`) is hand-maintained, not derived from route files — keep it in sync per the "Adding a resource" step above.
 
 ## Naming

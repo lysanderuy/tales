@@ -13,7 +13,6 @@ Reusable full-stack boilerplate: Next.js 16 + Supabase + Drizzle + Zod.
 | Client state  | Zustand (UI-only state: modals, sidebar, filters)                 |
 | API docs      | OpenAPI 3.1 (`zod-openapi`) + Scalar (`/api/docs`)                |
 | Testing       | Vitest (unit tests, colocated `*.test.ts`)                        |
-| Rate limiting | Upstash Redis (`@upstash/ratelimit`), optional                    |
 | Code quality  | ESLint + Prettier + Husky/lint-staged pre-commit                  |
 | CI            | GitHub Actions — typecheck/lint/test + PR description bot         |
 
@@ -83,18 +82,6 @@ db (src/db, Drizzle)  /  Supabase
 - `/api/openapi.json` — the generated OpenAPI 3.1 spec, raw JSON (deliberately not wrapped in `ApiResponse<T>`).
 
 Hand-maintained in `src/lib/api/openapi.ts`, not derived from route files — when you add/change an endpoint, add `.meta({ description, example })` to its validator fields and update the matching path entry there. Both routes are public/unauthenticated by design (dev tooling); gate them before a production launch that shouldn't expose the API surface.
-
-## Rate limiting
-
-`src/proxy.ts` rate-limits every `/api/**` request per IP before it reaches
-the route handler (pages aren't limited — abuse happens through `/api`, not
-navigation).
-
-- **Default**: 60 req/min per IP. **Override**: `/api/auth/*` → 10 req/min.
-- Backed by Upstash Redis (`src/lib/rate-limit.ts`) — REST-based, so it works from Edge middleware.
-- **Optional and lazy**: without `UPSTASH_REDIS_REST_URL`/`TOKEN` (see `.env.example`), requests always pass — no Upstash account needed to run the app.
-- Blocked requests log via `console.warn` (visible in your host's function logs) instead of an analytics dashboard.
-- To add a stricter route, extend the `overrides` array in `src/lib/rate-limit.ts` (mirrors `protectedPrefixes` in `src/lib/supabase/proxy.ts`).
 
 ## Testing
 
