@@ -71,6 +71,20 @@
       "when": 1792415425618,
       "tag": "0009_study-sessions-no-overlap",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792415903553,
+      "tag": "0010_create-blocks",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792415908176,
+      "tag": "0011_blocks-session-link",
+      "breakpoints": true
     }
   ]
 }

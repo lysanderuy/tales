@@ -1,6 +1,16 @@
 import { z } from "zod";
 import { createDocument } from "zod-openapi";
 import {
+  blockResponseSchema,
+  createBlockSchema,
+  listBlocksQuerySchema,
+  planSummaryQuerySchema,
+  planSummaryResponseSchema,
+  reorderBlocksSchema,
+  startBlockSchema,
+  updateBlockSchema,
+} from "@/validators/block.validator";
+import {
   createOutlineNodeSchema,
   listOutlineNodesQuerySchema,
   moveOutlineNodeSchema,
@@ -50,6 +60,12 @@ const subjectIdParams = z.object({
 const sessionIdParams = z.object({
   id: z.string().uuid().meta({ description: "Timer or study record ID." }),
 });
+
+const blockIdParams = z.object({
+  id: z.string().uuid().meta({ description: "Planned item ID." }),
+});
+
+const planTags = ["Plan"];
 
 const sessionTags = ["Study timer"];
 
@@ -234,6 +250,98 @@ export const openApiDocument = createDocument({
         },
       },
     },
+    "/api/blocks": {
+      get: {
+        tags: planTags,
+        summary: "List planned items for one day or a day range, with time studied so far",
+        requestParams: { query: listBlocksQuerySchema },
+        responses: {
+          "200": jsonResponse("Planned items by day, then order.", z.array(blockResponseSchema)),
+          "401": errorResponse("Unauthorized."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+      post: {
+        tags: planTags,
+        summary: "Add a planned item. It goes last on its day unless position is given.",
+        requestBody: { content: { "application/json": { schema: createBlockSchema } } },
+        responses: {
+          "201": jsonResponse("Added.", blockResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Subject or Topic not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
+    "/api/blocks/reorder": {
+      post: {
+        tags: planTags,
+        summary: "Reorder every planned item on one day",
+        requestBody: { content: { "application/json": { schema: reorderBlocksSchema } } },
+        responses: {
+          "200": jsonResponse("Reordered items.", z.array(blockResponseSchema)),
+          "401": errorResponse("Unauthorized."),
+          "422": errorResponse("Ids do not match the items on that day, or invalid input."),
+        },
+      },
+    },
+    "/api/blocks/{id}": {
+      patch: {
+        tags: planTags,
+        summary:
+          "Change Subject or Topic, day, time of day, planned minutes or place. A new day puts it last.",
+        requestParams: { path: blockIdParams },
+        requestBody: { content: { "application/json": { schema: updateBlockSchema } } },
+        responses: {
+          "200": jsonResponse("Updated.", blockResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Item or Subject or Topic not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+      delete: {
+        tags: planTags,
+        summary: "Delete a planned item. Study records on it are kept.",
+        requestParams: { path: blockIdParams },
+        responses: {
+          "200": jsonResponse("Deleted.", z.object({ deleted: z.literal(true) })),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+        },
+      },
+    },
+    "/api/blocks/{id}/start": {
+      post: {
+        tags: planTags,
+        summary:
+          "Start a timer on a planned item. A countdown of the minutes left, or open if none are left. Returns the existing timer (200) if one is running.",
+        requestParams: { path: blockIdParams },
+        requestBody: { content: { "application/json": { schema: startBlockSchema } } },
+        responses: {
+          "200": jsonResponse(
+            "A timer was already running; it is returned unchanged.",
+            sessionResponseSchema,
+          ),
+          "201": jsonResponse("Timer started.", sessionResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
+    "/api/plan/summary": {
+      get: {
+        tags: planTags,
+        summary:
+          "Planned minutes per Subject over a day range. Open-ended items are counted apart.",
+        requestParams: { query: planSummaryQuerySchema },
+        responses: {
+          "200": jsonResponse("Per-Subject totals.", planSummaryResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
     "/api/sessions": {
       get: {
         tags: sessionTags,
@@ -248,7 +356,8 @@ export const openApiDocument = createDocument({
       },
       post: {
         tags: sessionTags,
-        summary: "Start a timer. Returns the existing one (200) if a timer is already running.",
+        summary:
+          "Start a timer, optionally on a planned item. Returns the existing one (200) if a timer is already running.",
         requestBody: { content: { "application/json": { schema: startSessionSchema } } },
         responses: {
           "200": jsonResponse(
@@ -257,7 +366,7 @@ export const openApiDocument = createDocument({
           ),
           "201": jsonResponse("Timer started.", sessionResponseSchema),
           "401": errorResponse("Unauthorized."),
-          "404": errorResponse("Subject or Topic not found."),
+          "404": errorResponse("Subject, Topic or planned item not found."),
           "422": errorResponse("Validation error."),
         },
       },
@@ -289,7 +398,8 @@ export const openApiDocument = createDocument({
     "/api/sessions/{id}": {
       patch: {
         tags: sessionTags,
-        summary: "Edit Subject or Topic, method, note, or (stopped records only) start and end",
+        summary:
+          "Edit Subject or Topic, planned item, method, note, or (stopped records only) start and end. A new Subject or Topic outside the planned item detaches it.",
         requestParams: { path: sessionIdParams },
         requestBody: { content: { "application/json": { schema: updateSessionSchema } } },
         responses: {

@@ -15,6 +15,8 @@ export const messages = {
   nodeHasRecords: "This has study time or plans attached. Archive it instead.",
   nodeMoveIntoSelf: "It can't be moved under itself or anything inside it.",
   nodeReorderMismatch: "That order doesn't match what is here now. Please refresh and try again.",
+  plannedReorderMismatch:
+    "That order doesn't match what is planned now. Please refresh and try again.",
   timerAlreadyPaused: "It's already paused.",
   timerNotPaused: "It isn't paused.",
   timerNothingRunning: "Nothing is running right now.",

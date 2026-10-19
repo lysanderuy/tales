@@ -1,0 +1,1 @@
+ALTER TABLE study_sessions ADD CONSTRAINT study_sessions_block_fk FOREIGN KEY (user_id, block_id) REFERENCES blocks (user_id, id) ON DELETE SET NULL (block_id);

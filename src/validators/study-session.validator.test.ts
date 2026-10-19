@@ -21,8 +21,14 @@ describe("startSessionSchema", () => {
   it.each([0, 601, 1.5])("rejects planned minutes %s", (plannedMinutes) => {
     expect(startSessionSchema.safeParse({ plannedMinutes }).success).toBe(false);
   });
-  it("rejects planned for now", () => {
-    expect(startSessionSchema.safeParse({ startedFrom: "planned" }).success).toBe(false);
+  it("accepts planned and next_up, rejects unknown", () => {
+    expect(startSessionSchema.parse({ startedFrom: "planned" }).startedFrom).toBe("planned");
+    expect(startSessionSchema.parse({ startedFrom: "next_up" }).startedFrom).toBe("next_up");
+    expect(startSessionSchema.safeParse({ startedFrom: "other" }).success).toBe(false);
+  });
+  it("accepts a planned item id", () => {
+    expect(startSessionSchema.parse({ blockId: id }).blockId).toBe(id);
+    expect(startSessionSchema.safeParse({ blockId: "nope" }).success).toBe(false);
   });
 });
 
@@ -32,6 +38,10 @@ describe("updateSessionSchema", () => {
   });
   it("allows clearing method and note", () => {
     expect(updateSessionSchema.safeParse({ methodTag: null, note: null }).success).toBe(true);
+  });
+  it("allows picking or clearing a planned item", () => {
+    expect(updateSessionSchema.safeParse({ blockId: id }).success).toBe(true);
+    expect(updateSessionSchema.safeParse({ blockId: null }).success).toBe(true);
   });
   it("does not allow clearing the node", () => {
     expect(updateSessionSchema.safeParse({ nodeId: null }).success).toBe(false);

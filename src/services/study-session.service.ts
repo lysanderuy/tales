@@ -5,16 +5,19 @@ import { desc, eq, inArray, isNotNull, isNull, lt, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { owned } from "@/db/owned";
 import {
+  blocks,
   outlineNodes,
   profiles,
   sessionPauses,
   studySessions,
+  type Block,
   type SessionPause,
   type StudySession,
 } from "@/db/schema";
 import { AppError, mapDbError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
 import { descendantIds, pathOf, type OutlineRow } from "@/lib/outline/tree";
+import { keepsBlockLink, playMinutes } from "@/lib/plan/plan";
 import { addDays, dayRangeUtc, formatClock, localDateKey } from "@/lib/time/zone";
 import {
   activeSeconds,
@@ -62,6 +65,7 @@ function toResponse(row: StudySession, pauses: SessionPause[], now: Date): Sessi
   return {
     id: row.id,
     nodeId: row.nodeId,
+    blockId: row.blockId,
     plannedMinutes: row.plannedMinutes,
     methodTag: row.methodTag,
     note: row.note,
@@ -148,6 +152,54 @@ async function assertNodeOwned(executor: Executor, userId: string, nodeId: strin
   if (!found) throw new AppError(404, messages.notFound);
 }
 
+async function loadBlock(executor: Executor, userId: string, id: string): Promise<Block> {
+  const [row] = await executor
+    .select()
+    .from(blocks)
+    .where(owned(blocks, userId, eq(blocks.id, id)));
+  if (!row) throw new AppError(404, messages.notFound);
+  return row;
+}
+
+async function keepsLink(
+  executor: Executor,
+  userId: string,
+  block: Block,
+  pickedNodeId: string,
+): Promise<boolean> {
+  return keepsBlockLink(await loadOutlineRows(executor, userId), block.nodeId, pickedNodeId);
+}
+
+export async function progressByBlock(
+  executor: Executor,
+  userId: string,
+  blockIds: string[],
+): Promise<Map<string, number>> {
+  const progress = new Map<string, number>();
+  if (blockIds.length === 0) return progress;
+  const ids = sql.join(
+    blockIds.map((id) => sql`${id}`),
+    sql`, `,
+  );
+  const rows = await executor.execute<{ block_id: string; seconds: string }>(sql`
+    select
+      s.block_id,
+      sum(greatest(extract(epoch from (s.ended_at - s.started_at)) - coalesce(p.paused_seconds, 0), 0)) as seconds
+    from study_sessions s
+    left join lateral (
+      select sum(extract(epoch from (coalesce(sp.resumed_at, s.ended_at) - sp.paused_at))) as paused_seconds
+      from session_pauses sp
+      where sp.session_id = s.id and sp.user_id = s.user_id
+    ) p on true
+    where s.user_id = ${userId}
+      and s.ended_at is not null
+      and s.block_id in (${ids})
+    group by s.block_id
+  `);
+  for (const row of rows) progress.set(row.block_id, Number(row.seconds));
+  return progress;
+}
+
 async function loadOutlineRows(executor: Executor, userId: string): Promise<OutlineRow[]> {
   return executor
     .select({
@@ -225,12 +277,27 @@ export const studySessionService = {
     try {
       const session = await db.transaction(async (tx) => {
         if (input.nodeId) await assertNodeOwned(tx, userId, input.nodeId);
+        let nodeId = input.nodeId ?? null;
+        let blockId: string | null = null;
+        let plannedMinutes = input.plannedMinutes ?? null;
+        if (input.blockId) {
+          const block = await loadBlock(tx, userId, input.blockId);
+          if (nodeId === null || (await keepsLink(tx, userId, block, nodeId))) {
+            nodeId = nodeId ?? block.nodeId;
+            blockId = block.id;
+            if (input.plannedMinutes === undefined) {
+              const progress = (await progressByBlock(tx, userId, [block.id])).get(block.id) ?? 0;
+              plannedMinutes = playMinutes(block.plannedMinutes, progress);
+            }
+          }
+        }
         const [created] = await tx
           .insert(studySessions)
           .values({
             userId,
-            nodeId: input.nodeId ?? null,
-            plannedMinutes: input.plannedMinutes ?? null,
+            nodeId,
+            blockId,
+            plannedMinutes,
             startedFrom: input.startedFrom,
             startedAt: now,
             lastHeartbeatAt: now,
@@ -382,6 +449,22 @@ export const studySessionService = {
       const row = await lockRecord(tx, userId, id);
       if (patch.nodeId !== undefined) await assertNodeOwned(tx, userId, patch.nodeId);
 
+      let nextNodeId = patch.nodeId;
+      let nextBlockId: string | null | undefined;
+      if (patch.blockId) {
+        const block = await loadBlock(tx, userId, patch.blockId);
+        nextNodeId = block.nodeId;
+        nextBlockId = block.id;
+      } else if (patch.blockId === null) {
+        nextBlockId = null;
+      } else if (patch.nodeId !== undefined && row.blockId) {
+        const [current] = await tx
+          .select()
+          .from(blocks)
+          .where(owned(blocks, userId, eq(blocks.id, row.blockId)));
+        if (!current || !(await keepsLink(tx, userId, current, patch.nodeId))) nextBlockId = null;
+      }
+
       const editsTimes = patch.startedAt !== undefined || patch.endedAt !== undefined;
       if (editsTimes) {
         if (row.endedAt === null) throw new AppError(422, messages.timesEditStopped);
@@ -398,7 +481,8 @@ export const studySessionService = {
       await tx
         .update(studySessions)
         .set({
-          ...(patch.nodeId !== undefined && { nodeId: patch.nodeId }),
+          ...(nextNodeId !== undefined && { nodeId: nextNodeId }),
+          ...(nextBlockId !== undefined && { blockId: nextBlockId }),
           ...(patch.methodTag !== undefined && { methodTag: patch.methodTag }),
           ...(patch.note !== undefined && { note: patch.note }),
           ...(patch.startedAt !== undefined && { startedAt: patch.startedAt }),
@@ -423,12 +507,18 @@ export const studySessionService = {
     if (input.endedAt.getTime() > now.getTime()) throw new AppError(422, messages.timeInFuture);
     return db.transaction(async (tx) => {
       await assertNodeOwned(tx, userId, input.nodeId);
+      let blockId: string | null = null;
+      if (input.blockId) {
+        const block = await loadBlock(tx, userId, input.blockId);
+        if (await keepsLink(tx, userId, block, input.nodeId)) blockId = block.id;
+      }
       await assertNoOverlap(tx, userId, { start: input.startedAt, end: input.endedAt }, null, now);
       const [created] = await tx
         .insert(studySessions)
         .values({
           userId,
           nodeId: input.nodeId,
+          blockId,
           startedAt: input.startedAt,
           endedAt: input.endedAt,
           methodTag: input.methodTag ?? null,

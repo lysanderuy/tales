@@ -14,6 +14,8 @@ const instantSchema = z
 
 const nodeIdSchema = idSchema.meta({ description: "Subject or Topic ID." });
 
+const blockIdSchema = idSchema.meta({ description: "Planned item ID." });
+
 const plannedMinutesSchema = z
   .number()
   .int()
@@ -38,10 +40,14 @@ const dateKeySchema = z
 export const startSessionSchema = z.object({
   nodeId: nodeIdSchema.optional().meta({ description: "Subject or Topic ID. Can be set later." }),
   plannedMinutes: plannedMinutesSchema.optional(),
+  blockId: blockIdSchema.optional().meta({
+    description:
+      "Planned item this timer belongs to. Its Subject or Topic is used when nodeId is omitted.",
+  }),
   startedFrom: z
-    .literal("free")
+    .enum(["free", "planned", "next_up"])
     .default("free")
-    .meta({ description: "How the timer was started. Only free for now." }),
+    .meta({ description: "How the timer was started." }),
 });
 
 export type StartSessionInput = z.infer<typeof startSessionSchema>;
@@ -49,6 +55,10 @@ export type StartSessionInput = z.infer<typeof startSessionSchema>;
 export const updateSessionSchema = z
   .object({
     nodeId: nodeIdSchema.optional(),
+    blockId: blockIdSchema.nullable().optional().meta({
+      description:
+        "Pick a planned item: sets the Subject or Topic to its own and attaches the record. Null detaches it.",
+    }),
     methodTag: methodTagSchema.nullable().optional(),
     note: noteSchema.nullable().optional(),
     startedAt: instantSchema.optional(),
@@ -77,6 +87,10 @@ export type ExtendSessionInput = z.infer<typeof extendSessionSchema>;
 export const manualSessionSchema = z
   .object({
     nodeId: nodeIdSchema,
+    blockId: blockIdSchema.optional().meta({
+      description:
+        "Planned item to attach. Kept only if nodeId is its Subject or Topic or sits under it.",
+    }),
     startedAt: instantSchema,
     endedAt: instantSchema,
     methodTag: methodTagSchema.nullable().optional(),
@@ -127,6 +141,7 @@ export const sessionResponseSchema = z
       .meta({ description: "Countdown length including added time. Null for a count-up." }),
     methodTag: methodTagSchema.nullable(),
     note: z.string().nullable(),
+    blockId: idSchema.nullable().meta({ description: "Planned item ID, null if none." }),
     startedFrom: z.enum(["free", "planned", "next_up"]),
     startedAt: z.string().datetime(),
     endedAt: z.string().datetime().nullable(),
