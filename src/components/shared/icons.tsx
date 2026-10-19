@@ -114,3 +114,72 @@ export function CheckIcon({ size = 16 }: IconProps) {
     </svg>
   );
 }
+
+function StrokeIcon({ size, children }: IconProps & { children: React.ReactNode }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+export function CollapseIcon({ size = 20 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <path d="M4 9h5V4M20 15h-5v5M9 9L3.5 3.5M15 15l5.5 5.5" />
+    </StrokeIcon>
+  );
+}
+
+export function VolumeOnIcon({ size = 20 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <path d="M11 5L6 9H3v6h3l5 4V5z" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+    </StrokeIcon>
+  );
+}
+
+export function VolumeOffIcon({ size = 20 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <path d="M11 5L6 9H3v6h3l5 4V5z" />
+      <path d="M16 9.5l5 5M21 9.5l-5 5" />
+    </StrokeIcon>
+  );
+}
+
+export function MethodIcon({ size = 20 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <path d="M5 7h14M5 12h14M5 17h9" />
+    </StrokeIcon>
+  );
+}
+
+export function NoteIcon({ size = 20 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <path d="M4 20h4L19 9l-4-4L4 16v4z" />
+      <path d="M13.5 6.5l4 4" />
+    </StrokeIcon>
+  );
+}
+
+export function PlusIcon({ size = 20 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <path d="M12 5v14M5 12h14" />
+    </StrokeIcon>
+  );
+}

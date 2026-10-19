@@ -6,10 +6,12 @@ import { Card } from "@/components/ui/card";
 import { IconButton } from "@/components/ui/icon-button";
 import { Swatch } from "@/components/ui/swatch";
 import { useSessionClock } from "@/hooks/use-session-clock";
+import { useOpenFocus } from "@/hooks/use-open-focus";
 import { useStartBlock } from "@/hooks/use-start-block";
 import { useStartSession } from "@/hooks/use-start-session";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
+import { unlockAudio } from "@/lib/sound/chime";
 import {
   formatProgress,
   formatSeconds,
@@ -77,11 +79,15 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
   const { session, display } = useSessionClock();
   const startBlock = useStartBlock();
   const startSession = useStartSession();
+  const openFocus = useOpenFocus();
   const starting = startBlock.isPending || startSession.isPending;
 
   const play = (start: NonNullable<RowView["start"]>) => {
-    if ("blockId" in start) startBlock.mutate({ blockId: start.blockId });
-    else startSession.mutate({ nodeId: start.nodeId, startedFrom: "free" });
+    unlockAudio();
+    if ("blockId" in start) startBlock.mutate({ blockId: start.blockId }, { onSuccess: openFocus });
+    else {
+      startSession.mutate({ nodeId: start.nodeId, startedFrom: "free" }, { onSuccess: openFocus });
+    }
   };
 
   return (

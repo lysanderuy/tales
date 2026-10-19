@@ -6,9 +6,9 @@ import { PauseIcon, PlayIcon, StopIcon } from "@/components/shared/icons";
 import { Picker } from "@/components/shared/picker";
 import { IconButton } from "@/components/ui/icon-button";
 import { usePauseSession } from "@/hooks/use-pause-session";
+import { usePickSubject } from "@/hooks/use-pick-subject";
 import { useResumeSession } from "@/hooks/use-resume-session";
 import { useStopSession } from "@/hooks/use-stop-session";
-import { useUpdateSession } from "@/hooks/use-update-session";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
 import type { ClockDisplay } from "@/lib/timer/clock";
@@ -26,7 +26,7 @@ export function RunningBar({ session, display, subjectName }: RunningBarProps) {
   const pause = usePauseSession();
   const resume = useResumeSession();
   const stop = useStopSession();
-  const update = useUpdateSession();
+  const pickSubject = usePickSubject(session.id);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [nameButton, setNameButton] = useState<HTMLButtonElement | null>(null);
   const closePicker = useCallback(() => setPickerOpen(false), []);
@@ -71,9 +71,7 @@ export function RunningBar({ session, display, subjectName }: RunningBarProps) {
         <Picker
           anchor={nameButton}
           selected={{ nodeId: session.nodeId, blockId: session.blockId }}
-          onPick={(nodeId, blockId) =>
-            update.mutate(blockId ? { id: session.id, blockId } : { id: session.id, nodeId })
-          }
+          onPick={pickSubject}
           onClose={closePicker}
         />
       ) : null}

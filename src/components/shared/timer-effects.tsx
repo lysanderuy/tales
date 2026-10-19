@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 
+import { useCountdownChime } from "@/hooks/use-countdown-chime";
 import { useHeartbeatSession } from "@/hooks/use-heartbeat-session";
 import { useSessionClock } from "@/hooks/use-session-clock";
 import { useSubjects } from "@/hooks/use-subjects";
@@ -15,6 +16,7 @@ export function TimerEffects() {
   const { session, display } = useSessionClock();
   const subjects = useSubjects();
   const { mutate: sendHeartbeat } = useHeartbeatSession();
+  useCountdownChime();
 
   const index = useMemo(() => buildSubjectIndex(subjects.data ?? []), [subjects.data]);
   const subjectName = session?.nodeId ? (index.get(session.nodeId)?.name ?? null) : null;
