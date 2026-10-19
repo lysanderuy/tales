@@ -79,6 +79,17 @@ const daysToBoardsSchema = z
     description: "Hidden when no exam date is set or it has passed.",
   });
 
+const nextEventSchema = z
+  .object({
+    id: idSchema,
+    title: z.string(),
+    type: z.enum(["mock_board", "preboard", "subject_exam", "review_center_exam"]),
+    date: dateKeySchema,
+    time: clockSchema.nullable(),
+    daysAway: z.number().int().meta({ description: "Whole days from today. 0 means today." }),
+  })
+  .meta({ id: "NextEvent", description: "The soonest Upcoming event." });
+
 export const todayResponseSchema = z
   .object({
     todayDate: dateKeySchema,
@@ -94,6 +105,7 @@ export const todayResponseSchema = z
         }),
       )
       .meta({ description: "Seven local days ending today, oldest first." }),
+    nextEvent: nextEventSchema.nullable(),
     rows: z
       .array(z.discriminatedUnion("kind", [plannedRowSchema, freeRowSchema]))
       .meta({ description: "Planned rows in plan order, then other study newest first." }),

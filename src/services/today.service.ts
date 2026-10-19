@@ -9,6 +9,7 @@ import { rootIdOf } from "@/lib/outline/tree";
 import { addDays, formatClock, localDateKey } from "@/lib/time/zone";
 import { assembleToday, pickNextUp, type TodayRecord } from "@/lib/today/today";
 import { blockService } from "@/services/block.service";
+import { eventService } from "@/services/event.service";
 import { outlineNodeService } from "@/services/outline-node.service";
 import { studySessionService, type DayNodeTotal } from "@/services/study-session.service";
 import type { SessionResponse } from "@/validators/study-session.validator";
@@ -72,12 +73,13 @@ export const todayService = {
     const { timeZone, todayKey, now } = clock;
     const firstDay = addDays(todayKey, -6);
 
-    const [nodes, dayRows, todayBlocks, stopped, current] = await Promise.all([
+    const [nodes, dayRows, todayBlocks, stopped, current, nextEvent] = await Promise.all([
       outlineNodeService.list(userId, { includeArchived: true, includeTotals: false }),
       studySessionService.totalsByDayAndNode(userId, { from: firstDay, to: todayKey }, timeZone),
       blockService.list(userId, { date: todayKey, limit: 500 }),
       studySessionService.list(userId, { date: todayKey, limit: 500 }),
       studySessionService.getCurrent(userId),
+      eventService.nextUpcoming(userId, { now, timeZone, todayKey }),
     ]);
 
     const rootOf = new Map<string, string>();
@@ -119,6 +121,7 @@ export const todayService = {
       totalSeconds: todayRows.reduce((sum, row) => sum + row.seconds, 0),
       bySubject: subjectTotals(todayRows, rootOf),
       past7Days,
+      nextEvent,
       rows,
       serverNow: now.toISOString(),
     };

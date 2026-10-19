@@ -122,3 +122,18 @@ describe("planSummaryQuerySchema", () => {
     expect(planSummaryQuerySchema.safeParse({ from: "2026-01-12" }).success).toBe(false);
   });
 });
+
+describe("event links", () => {
+  it("accepts an event id or null when creating and updating", () => {
+    expect(createBlockSchema.safeParse({ nodeId: id, date: day, eventId: id2 }).success).toBe(true);
+    expect(createBlockSchema.safeParse({ nodeId: id, date: day, eventId: null }).success).toBe(
+      true,
+    );
+    expect(updateBlockSchema.safeParse({ eventId: null }).success).toBe(true);
+    expect(updateBlockSchema.safeParse({ eventId: "nope" }).success).toBe(false);
+  });
+  it("lists by event alone", () => {
+    expect(listBlocksQuerySchema.safeParse({ eventId: id2 }).success).toBe(true);
+    expect(listBlocksQuerySchema.safeParse({}).success).toBe(false);
+  });
+});

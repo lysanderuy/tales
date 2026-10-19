@@ -60,11 +60,23 @@ function offsetMs(instant: Date, timeZone: string): number {
   return asUtc - Math.floor(instant.getTime() / 1000) * 1000;
 }
 
-function localMidnightUtc(dateKey: string, timeZone: string): Date {
+function localInstantUtc(dateKey: string, hour: number, minute: number, timeZone: string): Date {
   const { year, month, day } = parseDateKey(dateKey);
-  const guess = Date.UTC(year, month - 1, day);
+  const guess = Date.UTC(year, month - 1, day, hour, minute);
   const first = guess - offsetMs(new Date(guess), timeZone);
   return new Date(guess - offsetMs(new Date(first), timeZone));
+}
+
+function localMidnightUtc(dateKey: string, timeZone: string): Date {
+  return localInstantUtc(dateKey, 0, 0, timeZone);
+}
+
+const CLOCK = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+export function zonedInstant(dateKey: string, clock: string, timeZone: string): Date {
+  const match = CLOCK.exec(clock);
+  if (!match) throw new RangeError(`Invalid clock: ${clock}`);
+  return localInstantUtc(dateKey, Number(match[1]), Number(match[2]), timeZone);
 }
 
 export function localDateKey(instant: Date, timeZone: string): string {

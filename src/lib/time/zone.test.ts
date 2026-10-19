@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addDays, dayRangeUtc, formatClock, localDateKey, mondayOf } from "./zone";
+import { addDays, dayRangeUtc, formatClock, localDateKey, mondayOf, zonedInstant } from "./zone";
 
 describe("localDateKey", () => {
   it("uses the local calendar day", () => {
@@ -71,5 +71,41 @@ describe("formatClock", () => {
     expect(formatClock(instant, "Asia/Manila")).toBe("01:05");
     expect(formatClock(instant, "America/New_York")).toBe("12:05");
     expect(formatClock(new Date("2026-03-01T05:00:00Z"), "America/New_York")).toBe("00:00");
+  });
+});
+
+describe("zonedInstant", () => {
+  it("converts Manila wall time to UTC", () => {
+    expect(zonedInstant("2026-03-02", "09:30", "Asia/Manila").toISOString()).toBe(
+      "2026-03-02T01:30:00.000Z",
+    );
+  });
+
+  it("matches local midnight from dayRangeUtc", () => {
+    expect(zonedInstant("2026-03-02", "00:00", "Asia/Manila").getTime()).toBe(
+      dayRangeUtc("2026-03-02", "Asia/Manila").start.getTime(),
+    );
+  });
+
+  it("uses the offset in force on that date", () => {
+    expect(zonedInstant("2026-01-15", "12:00", "America/New_York").toISOString()).toBe(
+      "2026-01-15T17:00:00.000Z",
+    );
+    expect(zonedInstant("2026-07-15", "12:00", "America/New_York").toISOString()).toBe(
+      "2026-07-15T16:00:00.000Z",
+    );
+  });
+
+  it("handles times either side of a DST change", () => {
+    expect(zonedInstant("2026-03-08", "01:30", "America/New_York").toISOString()).toBe(
+      "2026-03-08T06:30:00.000Z",
+    );
+    expect(zonedInstant("2026-03-08", "03:30", "America/New_York").toISOString()).toBe(
+      "2026-03-08T07:30:00.000Z",
+    );
+  });
+
+  it("rejects a malformed clock", () => {
+    expect(() => zonedInstant("2026-03-02", "9:30", "Asia/Manila")).toThrow(RangeError);
   });
 });

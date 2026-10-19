@@ -38,9 +38,12 @@ const positionSchema = z
   .min(0)
   .meta({ description: "Zero-based place within the date. Defaults to last.", example: 0 });
 
+const eventIdSchema = idSchema.meta({ description: "Event ID." });
+
 export const createBlockSchema = z.object({
   nodeId: nodeIdSchema,
   date: dateKeySchema,
+  eventId: eventIdSchema.nullable().optional(),
   timeOfDay: timeOfDaySchema.nullable().optional(),
   plannedMinutes: plannedMinutesSchema.nullable().optional(),
   position: positionSchema.optional(),
@@ -54,6 +57,7 @@ export const updateBlockSchema = z
     date: dateKeySchema
       .optional()
       .meta({ description: "Moves the item to this day, at the end unless position is given." }),
+    eventId: eventIdSchema.nullable().optional(),
     timeOfDay: timeOfDaySchema.nullable().optional(),
     plannedMinutes: plannedMinutesSchema.nullable().optional(),
     position: positionSchema.optional(),
@@ -78,6 +82,7 @@ export type ReorderBlocksInput = z.infer<typeof reorderBlocksSchema>;
 export const listBlocksQuerySchema = z
   .object({
     date: dateKeySchema.optional(),
+    eventId: eventIdSchema.optional().meta({ description: "Only items tied to this event." }),
     from: dateKeySchema.optional().meta({ description: "First day of the range, inclusive." }),
     to: dateKeySchema.optional().meta({ description: "Last day of the range, inclusive." }),
     limit: z.coerce
@@ -89,10 +94,11 @@ export const listBlocksQuerySchema = z
       .meta({ description: "Most items to return, up to 500.", example: 200 }),
   })
   .refine(
-    (value) =>
-      value.date !== undefined
-        ? value.from === undefined && value.to === undefined
-        : value.from !== undefined && value.to !== undefined && value.from <= value.to,
+    (value) => {
+      if (value.date !== undefined) return value.from === undefined && value.to === undefined;
+      if (value.from === undefined && value.to === undefined) return value.eventId !== undefined;
+      return value.from !== undefined && value.to !== undefined && value.from <= value.to;
+    },
     { message: messages.invalidRequest },
   );
 

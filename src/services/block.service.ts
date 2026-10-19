@@ -4,7 +4,7 @@ import { asc, eq, gte, lte } from "drizzle-orm";
 
 import { db } from "@/db";
 import { owned } from "@/db/owned";
-import { blocks, outlineNodes, type Block } from "@/db/schema";
+import { blocks, events, outlineNodes, type Block } from "@/db/schema";
 import { AppError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
 import { orderAfterMove, summarizePlanned } from "@/lib/plan/plan";
@@ -60,6 +60,18 @@ async function assertNodeOwned(executor: Executor, userId: string, nodeId: strin
   if (!found) throw new AppError(404, messages.notFound);
 }
 
+async function assertEventOwned(
+  executor: Executor,
+  userId: string,
+  eventId: string,
+): Promise<void> {
+  const [found] = await executor
+    .select({ id: events.id })
+    .from(events)
+    .where(owned(events, userId, eq(events.id, eventId)));
+  if (!found) throw new AppError(404, messages.notFound);
+}
+
 async function loadDay(executor: Executor, userId: string, date: string): Promise<Block[]> {
   return executor
     .select()
@@ -106,6 +118,7 @@ export const blockService = {
           userId,
           from ? gte(blocks.date, from) : undefined,
           to ? lte(blocks.date, to) : undefined,
+          query.eventId ? eq(blocks.eventId, query.eventId) : undefined,
         ),
       )
       .orderBy(asc(blocks.date), asc(blocks.position), asc(blocks.createdAt), asc(blocks.id))
@@ -116,12 +129,14 @@ export const blockService = {
   async create(userId: string, input: CreateBlockInput): Promise<BlockResponse> {
     return db.transaction(async (tx) => {
       await assertNodeOwned(tx, userId, input.nodeId);
+      if (input.eventId) await assertEventOwned(tx, userId, input.eventId);
       const day = await loadDay(tx, userId, input.date);
       const [created] = await tx
         .insert(blocks)
         .values({
           userId,
           nodeId: input.nodeId,
+          eventId: input.eventId ?? null,
           date: input.date,
           timeOfDay: input.timeOfDay ?? null,
           plannedMinutes: input.plannedMinutes ?? null,
@@ -149,6 +164,7 @@ export const blockService = {
         .for("update");
       if (!row) throw new AppError(404, messages.notFound);
       if (patch.nodeId !== undefined) await assertNodeOwned(tx, userId, patch.nodeId);
+      if (patch.eventId) await assertEventOwned(tx, userId, patch.eventId);
 
       const movesDay = patch.date !== undefined && patch.date !== row.date;
       const targetDate = patch.date ?? row.date;
@@ -161,6 +177,7 @@ export const blockService = {
         .update(blocks)
         .set({
           ...(patch.nodeId !== undefined && { nodeId: patch.nodeId }),
+          ...(patch.eventId !== undefined && { eventId: patch.eventId }),
           ...(movesDay && { date: targetDate }),
           ...(patch.timeOfDay !== undefined && { timeOfDay: patch.timeOfDay }),
           ...(patch.plannedMinutes !== undefined && { plannedMinutes: patch.plannedMinutes }),

@@ -11,6 +11,14 @@ import {
   updateBlockSchema,
 } from "@/validators/block.validator";
 import {
+  closeEventSchema,
+  createEventSchema,
+  eventDetailResponseSchema,
+  eventListResponseSchema,
+  listEventsQuerySchema,
+  updateEventSchema,
+} from "@/validators/event.validator";
+import {
   createOutlineNodeSchema,
   listOutlineNodesQuerySchema,
   moveOutlineNodeSchema,
@@ -73,7 +81,13 @@ const blockIdParams = z.object({
   id: z.string().uuid().meta({ description: "Planned item ID." }),
 });
 
+const eventIdParams = z.object({
+  id: z.string().uuid().meta({ description: "Event ID." }),
+});
+
 const planTags = ["Plan"];
+
+const eventTags = ["Events"];
 
 const sessionTags = ["Study timer"];
 
@@ -261,7 +275,8 @@ export const openApiDocument = createDocument({
     "/api/blocks": {
       get: {
         tags: planTags,
-        summary: "List planned items for one day or a day range, with time studied so far",
+        summary:
+          "List planned items for one day, a day range or one Event, with time studied so far",
         requestParams: { query: listBlocksQuerySchema },
         responses: {
           "200": jsonResponse("Planned items by day, then order.", z.array(blockResponseSchema)),
@@ -276,7 +291,7 @@ export const openApiDocument = createDocument({
         responses: {
           "201": jsonResponse("Added.", blockResponseSchema),
           "401": errorResponse("Unauthorized."),
-          "404": errorResponse("Subject or Topic not found."),
+          "404": errorResponse("Subject, Topic or Event not found."),
           "422": errorResponse("Validation error."),
         },
       },
@@ -297,13 +312,13 @@ export const openApiDocument = createDocument({
       patch: {
         tags: planTags,
         summary:
-          "Change Subject or Topic, day, time of day, planned minutes or place. A new day puts it last.",
+          "Change Subject or Topic, Event, day, time of day, planned minutes or place. A new day puts it last.",
         requestParams: { path: blockIdParams },
         requestBody: { content: { "application/json": { schema: updateBlockSchema } } },
         responses: {
           "200": jsonResponse("Updated.", blockResponseSchema),
           "401": errorResponse("Unauthorized."),
-          "404": errorResponse("Item or Subject or Topic not found."),
+          "404": errorResponse("Item, Subject, Topic or Event not found."),
           "422": errorResponse("Validation error."),
         },
       },
@@ -470,10 +485,85 @@ export const openApiDocument = createDocument({
         },
       },
     },
+    "/api/events": {
+      get: {
+        tags: eventTags,
+        summary:
+          "List Events, optionally within a day range. Ready to close first, then Upcoming, then Closed.",
+        requestParams: { query: listEventsQuerySchema },
+        responses: {
+          "200": jsonResponse("Events.", eventListResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+      post: {
+        tags: eventTags,
+        summary: "Add an Event",
+        requestBody: { content: { "application/json": { schema: createEventSchema } } },
+        responses: {
+          "201": jsonResponse("Added.", eventDetailResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Subject or Topic not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
+    "/api/events/{id}": {
+      get: {
+        tags: eventTags,
+        summary: "One Event with its covers, planned items, time studied, note and marks",
+        requestParams: { path: eventIdParams },
+        responses: {
+          "200": jsonResponse("Event.", eventDetailResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+        },
+      },
+      patch: {
+        tags: eventTags,
+        summary:
+          "Change an Event. Covers are replaced when given. A Closed Event stays Closed when edited.",
+        requestParams: { path: eventIdParams },
+        requestBody: { content: { "application/json": { schema: updateEventSchema } } },
+        responses: {
+          "200": jsonResponse("Updated.", eventDetailResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Event, Subject or Topic not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+      delete: {
+        tags: eventTags,
+        summary: "Delete an Event. Planned items are kept and unlinked; study records are kept.",
+        requestParams: { path: eventIdParams },
+        responses: {
+          "200": jsonResponse("Deleted.", z.object({ deleted: z.literal(true) })),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+        },
+      },
+    },
+    "/api/events/{id}/close": {
+      post: {
+        tags: eventTags,
+        summary:
+          "Close an Event, or save its note and marks again if already Closed. A null mark clears it. Never reopens.",
+        requestParams: { path: eventIdParams },
+        requestBody: { content: { "application/json": { schema: closeEventSchema } } },
+        responses: {
+          "200": jsonResponse("Closed.", eventDetailResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+          "422": errorResponse("A mark is on something the Event does not cover or plan."),
+        },
+      },
+    },
     "/api/today": {
       get: {
         tags: ["Today"],
-        summary: "Today's study, time by Subject, the past 7 days and days to boards",
+        summary:
+          "Today's study, time by Subject, the past 7 days, days to boards and the next Upcoming Event",
         responses: {
           "200": jsonResponse("Today.", todayResponseSchema),
           "401": errorResponse("Unauthorized."),
