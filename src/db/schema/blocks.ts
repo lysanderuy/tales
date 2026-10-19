@@ -37,7 +37,8 @@ export const blocks = pgTable(
       name: "blocks_node_fk",
       columns: [t.userId, t.nodeId],
       foreignColumns: [outlineNodes.userId, outlineNodes.id],
-    }).onDelete("restrict"),
+    }).onDelete("no action"),
+    index("blocks_user_node_idx").on(t.userId, t.nodeId),
     index("blocks_user_date_position_idx").on(t.userId, t.date, t.position),
     check(
       "blocks_planned_minutes_check",

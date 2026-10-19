@@ -50,7 +50,9 @@ export const studySessions = pgTable(
       name: "study_sessions_node_fk",
       columns: [t.userId, t.nodeId],
       foreignColumns: [outlineNodes.userId, outlineNodes.id],
-    }).onDelete("restrict"),
+    }).onDelete("no action"),
+    index("study_sessions_user_node_idx").on(t.userId, t.nodeId),
+    index("study_sessions_user_block_idx").on(t.userId, t.blockId),
     uniqueIndex("study_sessions_one_live_per_user")
       .on(t.userId)
       .where(sql`${t.endedAt} is null`),

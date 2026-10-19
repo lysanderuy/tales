@@ -71,7 +71,10 @@ export const hiddenLines = pgTable(
       .notNull()
       .references(() => dailyLines.id, { onDelete: "cascade" }),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.lineId] })],
+  (t) => [
+    primaryKey({ columns: [t.userId, t.lineId] }),
+    index("hidden_lines_line_idx").on(t.lineId),
+  ],
 ).enableRLS();
 
 export const dailyLinePicks = pgTable(
@@ -85,7 +88,10 @@ export const dailyLinePicks = pgTable(
       .notNull()
       .references(() => dailyLines.id, { onDelete: "cascade" }),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.date] })],
+  (t) => [
+    primaryKey({ columns: [t.userId, t.date] }),
+    index("daily_line_picks_line_idx").on(t.lineId),
+  ],
 ).enableRLS();
 
 export type DailySet = typeof dailySets.$inferSelect;

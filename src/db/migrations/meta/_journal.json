@@ -120,6 +120,13 @@
       "when": 1792417424568,
       "tag": "0016_seed-builtin-daily-sets",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792420454325,
+      "tag": "0017_fk-no-action-and-indexes",
+      "breakpoints": true
     }
   ]
 }
