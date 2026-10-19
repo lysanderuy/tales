@@ -54,6 +54,19 @@ describe("handleApiError", () => {
     });
   });
 
+  it("maps malformed JSON to a 400", async () => {
+    const error = await new Request("http://localhost", { method: "POST", body: "{" })
+      .json()
+      .catch((caught: unknown) => caught);
+
+    const response = handleApiError(error);
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: messages.invalidRequest,
+    });
+  });
+
   it("falls back to a 500 for unknown errors", async () => {
     const response = handleApiError(new Error("boom"));
     expect(response.status).toBe(500);

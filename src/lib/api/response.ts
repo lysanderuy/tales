@@ -54,6 +54,8 @@ export function handleApiError(error: unknown) {
     return apiError(message, 422);
   }
 
+  if (error instanceof SyntaxError) return apiError(messages.invalidRequest, 400);
+
   const mapped = mapDbError(error);
   if (mapped) return apiError(mapped.message, mapped.status);
 
