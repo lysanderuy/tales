@@ -1,10 +1,14 @@
 "use client";
 
+import { useCallback, useState } from "react";
+
 import { PauseIcon, PlayIcon, StopIcon } from "@/components/shared/icons";
+import { Picker } from "@/components/shared/picker";
 import { IconButton } from "@/components/ui/icon-button";
 import { usePauseSession } from "@/hooks/use-pause-session";
 import { useResumeSession } from "@/hooks/use-resume-session";
 import { useStopSession } from "@/hooks/use-stop-session";
+import { useUpdateSession } from "@/hooks/use-update-session";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
 import type { ClockDisplay } from "@/lib/timer/clock";
@@ -22,6 +26,10 @@ export function RunningBar({ session, display, subjectName }: RunningBarProps) {
   const pause = usePauseSession();
   const resume = useResumeSession();
   const stop = useStopSession();
+  const update = useUpdateSession();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [nameButton, setNameButton] = useState<HTMLButtonElement | null>(null);
+  const closePicker = useCallback(() => setPickerOpen(false), []);
   const busy = pause.isPending || resume.isPending || stop.isPending;
 
   return (
@@ -49,9 +57,26 @@ export function RunningBar({ session, display, subjectName }: RunningBarProps) {
           {display.text}
         </span>
       </button>
-      <span className="max-w-[190px] truncate rounded-row px-1.5 py-1 text-small text-text-soft">
+      <button
+        ref={setNameButton}
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={pickerOpen}
+        onClick={() => setPickerOpen((value) => !value)}
+        className="max-w-[190px] truncate rounded-row px-1.5 py-1 text-small text-text-soft hover:bg-fill"
+      >
         {subjectName ?? messages.todayWhatStudying}
-      </span>
+      </button>
+      {pickerOpen ? (
+        <Picker
+          anchor={nameButton}
+          selected={{ nodeId: session.nodeId, blockId: session.blockId }}
+          onPick={(nodeId, blockId) =>
+            update.mutate(blockId ? { id: session.id, blockId } : { id: session.id, nodeId })
+          }
+          onClose={closePicker}
+        />
+      ) : null}
       {display.paused ? (
         <IconButton
           size="xs"

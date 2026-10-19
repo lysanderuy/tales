@@ -16,8 +16,14 @@ export function useDismiss(
   useEffect(() => {
     if (!open) return;
 
+    // The trigger counts as inside so its own click toggles instead of close-then-reopen.
     function onOutside(event: Event) {
-      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) {
+      const target = event.target;
+      if (
+        target instanceof Node &&
+        !containerRef.current?.contains(target) &&
+        !triggerRef.current?.contains(target)
+      ) {
         onClose();
       }
     }
@@ -34,7 +40,7 @@ export function useDismiss(
       document.removeEventListener("focusin", onOutside);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [containerRef, open, onClose, closeAndRestoreFocus]);
+  }, [containerRef, triggerRef, open, onClose, closeAndRestoreFocus]);
 
   return closeAndRestoreFocus;
 }
