@@ -3,7 +3,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { owned } from "@/db/owned";
+import { lockUser, owned } from "@/db/owned";
 import { outlineNodes, type OutlineNode } from "@/db/schema";
 import { AppError, mapDbError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
@@ -139,6 +139,7 @@ export const outlineNodeService = {
 
   async create(userId: string, input: CreateOutlineNodeInput): Promise<OutlineNodeResponse> {
     return db.transaction(async (tx) => {
+      await lockUser(tx, userId);
       const rows = await loadAll(tx, userId);
       const parentId = input.parentId ?? null;
       if (parentId !== null && !rows.some((row) => row.id === parentId)) {
@@ -198,6 +199,7 @@ export const outlineNodeService = {
     input: MoveOutlineNodeInput,
   ): Promise<OutlineNodeResponse> {
     return db.transaction(async (tx) => {
+      await lockUser(tx, userId);
       const rows = await loadAll(tx, userId);
       const node = rows.find((row) => row.id === id);
       if (!node) throw new AppError(404, messages.notFound);
@@ -246,6 +248,7 @@ export const outlineNodeService = {
 
   async reorder(userId: string, input: ReorderOutlineNodesInput): Promise<OutlineNodeResponse[]> {
     return db.transaction(async (tx) => {
+      await lockUser(tx, userId);
       const rows = await loadAll(tx, userId);
       if (input.parentId !== null && !rows.some((row) => row.id === input.parentId)) {
         throw new AppError(404, messages.notFound);

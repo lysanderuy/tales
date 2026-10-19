@@ -537,12 +537,16 @@ export const studySessionService = {
     });
   },
 
-  async list(userId: string, query: ListSessionsQuery): Promise<SessionResponse[]> {
+  async list(
+    userId: string,
+    query: ListSessionsQuery,
+    knownTimeZone?: string,
+  ): Promise<SessionResponse[]> {
     const now = new Date();
     let from = query.from;
     let to = query.to;
     if (query.date) {
-      const range = dayRangeUtc(query.date, await userTimeZone(db, userId));
+      const range = dayRangeUtc(query.date, knownTimeZone ?? (await userTimeZone(db, userId)));
       from = range.start;
       to = range.end;
     }

@@ -21,6 +21,25 @@ const record = (id: string, hour: number, over: Partial<TodayRecord> = {}): Toda
 });
 
 describe("assembleToday", () => {
+  it("lists a live record once even when it also appears among stopped ones", () => {
+    const rows = assembleToday({
+      blocks: [],
+      progressByBlockId: new Map(),
+      records: [record("r1", 9, { live: false }), record("r1", 9, { endClock: null, live: true })],
+    });
+    expect(rows).toHaveLength(1);
+  });
+
+  it("keeps a live record that started before today as a free row", () => {
+    const rows = assembleToday({
+      blocks: [block("b1")],
+      progressByBlockId: new Map(),
+      records: [record("r1", 23, { blockId: "yesterday-block", endClock: null, live: true })],
+    });
+    expect(rows.map((row) => row.kind)).toEqual(["planned", "free"]);
+    expect(rows[1]).toMatchObject({ recordId: "r1", live: true });
+  });
+
   it("is empty with nothing planned or studied", () => {
     expect(assembleToday({ blocks: [], progressByBlockId: new Map(), records: [] })).toEqual([]);
   });

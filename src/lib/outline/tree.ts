@@ -62,8 +62,7 @@ export function pathOf(rows: readonly OutlineRow[], id: string): string[] {
   return path;
 }
 
-export function rootIdOf(rows: readonly OutlineRow[], id: string): string | undefined {
-  const byId = new Map(rows.map((row) => [row.id, row]));
+function resolveRoot(byId: ReadonlyMap<string, OutlineRow>, id: string): string | undefined {
   const seen = new Set<string>();
   let current = byId.get(id);
   while (current && !seen.has(current.id)) {
@@ -72,6 +71,20 @@ export function rootIdOf(rows: readonly OutlineRow[], id: string): string | unde
     current = byId.get(current.parentId);
   }
   return undefined;
+}
+
+export function rootIdOf(rows: readonly OutlineRow[], id: string): string | undefined {
+  return resolveRoot(new Map(rows.map((row) => [row.id, row])), id);
+}
+
+export function rootIdMap(rows: readonly OutlineRow[]): Map<string, string> {
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const roots = new Map<string, string>();
+  for (const row of rows) {
+    const rootId = resolveRoot(byId, row.id);
+    if (rootId) roots.set(row.id, rootId);
+  }
+  return roots;
 }
 
 export function descendantIds(rows: readonly OutlineRow[], id: string): string[] {

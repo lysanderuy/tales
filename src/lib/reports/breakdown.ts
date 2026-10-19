@@ -1,4 +1,4 @@
-import { descendantIds, rootIdOf, type OutlineRow } from "@/lib/outline/tree";
+import { descendantIds, rootIdMap, type OutlineRow } from "@/lib/outline/tree";
 import { daysInRange, type DayRange } from "@/lib/reports/ranges";
 
 export interface DayNodeSeconds {
@@ -37,7 +37,10 @@ function groupResolver(
   rows: readonly ReportNode[],
   scopeId: string | null,
 ): (nodeId: string) => string | null {
-  if (scopeId === null) return (nodeId) => rootIdOf(rows, nodeId) ?? null;
+  if (scopeId === null) {
+    const rootIds = rootIdMap(rows);
+    return (nodeId) => rootIds.get(nodeId) ?? null;
+  }
   const childOf = new Map<string, string>();
   for (const child of rows.filter((row) => row.parentId === scopeId)) {
     childOf.set(child.id, child.id);

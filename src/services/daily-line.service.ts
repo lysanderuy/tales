@@ -3,7 +3,7 @@ import "server-only";
 import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { owned } from "@/db/owned";
+import { lockUser, owned } from "@/db/owned";
 import {
   dailyLinePicks,
   dailyLines,
@@ -29,13 +29,16 @@ import type {
 
 const DEFAULT_TIME_ZONE = "Asia/Manila";
 const HISTORY_CAP = 2000;
+const INSERT_CHUNK = 1000;
 
 function toResponse(row: DailyLine, hidden: boolean): DailyLineResponse {
   return { id: row.id, setId: row.setId, text: row.text, position: row.position, hidden };
 }
 
-async function nextPosition(setId: string): Promise<number> {
-  const [row] = await db
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function nextPosition(tx: Tx, setId: string): Promise<number> {
+  const [row] = await tx
     .select({ max: sql<number>`coalesce(max(${dailyLines.position}), -1)::int` })
     .from(dailyLines)
     .where(eq(dailyLines.setId, setId));
@@ -134,10 +137,14 @@ export const dailyLineService = {
     input: CreateDailyLineInput,
   ): Promise<DailyLineResponse> {
     await findOwnSet(userId, setId);
-    const [row] = await db
-      .insert(dailyLines)
-      .values({ setId, text: input.text, position: await nextPosition(setId) })
-      .returning();
+    const row = await db.transaction(async (tx) => {
+      await lockUser(tx, userId);
+      const [created] = await tx
+        .insert(dailyLines)
+        .values({ setId, text: input.text, position: await nextPosition(tx, setId) })
+        .returning();
+      return created;
+    });
     return toResponse(row, false);
   },
 
@@ -175,10 +182,17 @@ export const dailyLineService = {
       existing.map((row) => row.text),
     );
     if (!input.preview && parsed.lines.length > 0) {
-      const start = await nextPosition(setId);
-      await db
-        .insert(dailyLines)
-        .values(parsed.lines.map((text, index) => ({ setId, text, position: start + index })));
+      await db.transaction(async (tx) => {
+        await lockUser(tx, userId);
+        const start = await nextPosition(tx, setId);
+        for (let offset = 0; offset < parsed.lines.length; offset += INSERT_CHUNK) {
+          await tx.insert(dailyLines).values(
+            parsed.lines
+              .slice(offset, offset + INSERT_CHUNK)
+              .map((text, index) => ({ setId, text, position: start + offset + index })),
+          );
+        }
+      });
     }
     return {
       added: parsed.lines.length,

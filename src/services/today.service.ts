@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { profiles } from "@/db/schema";
 import { daysToBoards } from "@/lib/exam/days-to-boards";
-import { rootIdOf } from "@/lib/outline/tree";
+import { rootIdMap } from "@/lib/outline/tree";
 import { addDays, formatClock, localDateKey } from "@/lib/time/zone";
 import { assembleToday, pickNextUp, type TodayRecord } from "@/lib/today/today";
 import { blockService } from "@/services/block.service";
@@ -89,28 +89,18 @@ export const todayService = {
         outlineNodeService.list(userId, { includeArchived: true, includeTotals: false }),
         studySessionService.totalsByDayAndNode(userId, { from: firstDay, to: todayKey }, timeZone),
         blockService.list(userId, { date: todayKey, limit: 500 }),
-        studySessionService.list(userId, { date: todayKey, limit: 500 }),
+        studySessionService.list(userId, { date: todayKey, limit: 500 }, timeZone),
         studySessionService.getCurrent(userId),
         eventService.nextUpcoming(userId, { now, timeZone, todayKey }),
         safeDailyLine(userId, todayKey),
       ],
     );
 
-    const rootOf = new Map<string, string>();
-    for (const node of nodes) {
-      const rootId = rootIdOf(nodes, node.id);
-      if (rootId) rootOf.set(node.id, rootId);
-    }
+    const rootOf = rootIdMap(nodes);
 
-    const sessions = [...stopped];
     const live = current.session;
-    if (
-      live &&
-      live.state !== "stopped" &&
-      localDateKey(new Date(live.startedAt), timeZone) === todayKey
-    ) {
-      sessions.push(live);
-    }
+    const sessions = [...stopped];
+    if (live && live.state !== "stopped") sessions.push(live);
 
     const rows = assembleToday({
       blocks: todayBlocks,

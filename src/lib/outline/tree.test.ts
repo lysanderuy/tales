@@ -8,6 +8,7 @@ import {
   orderedRows,
   pathOf,
   rollUp,
+  rootIdMap,
   rootIdOf,
   type OutlineRow,
 } from "./tree";
@@ -72,6 +73,14 @@ describe("pathOf and rootIdOf", () => {
   it("finds the root", () => {
     expect(rootIdOf(rows, "f")).toBe("s");
     expect(rootIdOf(rows, "t")).toBe("t");
+  });
+
+  it("maps every node to its root in one pass", () => {
+    const roots = rootIdMap(rows);
+    expect(roots.get("f")).toBe("s");
+    expect(roots.get("x")).toBe("s");
+    expect(roots.get("t")).toBe("t");
+    expect(roots.size).toBe(rows.length);
   });
 });
 

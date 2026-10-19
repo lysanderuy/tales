@@ -1,4 +1,4 @@
-import { isDescendant, rootIdOf, type OutlineRow } from "@/lib/outline/tree";
+import { isDescendant, rootIdMap, type OutlineRow } from "@/lib/outline/tree";
 
 export interface PlannedBlock {
   nodeId: string;
@@ -32,8 +32,9 @@ export function summarizePlanned(
   blocks: readonly PlannedBlock[],
 ): PlannedSummary[] {
   const byRoot = new Map<string, PlannedSummary>();
+  const rootIds = rootIdMap(rows);
   for (const block of blocks) {
-    const rootId = rootIdOf(rows, block.nodeId);
+    const rootId = rootIds.get(block.nodeId);
     if (!rootId) continue;
     let entry = byRoot.get(rootId);
     if (!entry) {

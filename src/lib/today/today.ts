@@ -56,9 +56,10 @@ export function assembleToday(input: {
   records: readonly TodayRecord[];
 }): TodayRow[] {
   const blockIds = new Set(input.blocks.map((block) => block.id));
+  const records = [...new Map(input.records.map((record) => [record.id, record])).values()];
 
   const planned: PlannedRow[] = input.blocks.map((block) => {
-    const mine = input.records
+    const mine = records
       .filter((record) => record.blockId === block.id)
       .sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
     return {
@@ -72,7 +73,7 @@ export function assembleToday(input: {
     };
   });
 
-  const free: FreeRow[] = input.records
+  const free: FreeRow[] = records
     .filter((record) => record.blockId === null || !blockIds.has(record.blockId))
     .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
     .map((record) => ({

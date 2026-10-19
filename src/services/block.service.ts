@@ -3,7 +3,7 @@ import "server-only";
 import { asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { owned } from "@/db/owned";
+import { lockUser, owned } from "@/db/owned";
 import { blocks, events, outlineNodes, type Block } from "@/db/schema";
 import { AppError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
@@ -118,13 +118,14 @@ export async function createMany(
   rows: readonly NewBlockRow[],
 ): Promise<number> {
   if (rows.length === 0) return 0;
+  await lockUser(tx, userId);
   const dates = [...new Set(rows.map((row) => row.date))];
   const counts = await tx
-    .select({ date: blocks.date, count: sql<number>`count(*)::int` })
+    .select({ date: blocks.date, max: sql<number>`max(${blocks.position})::int` })
     .from(blocks)
     .where(owned(blocks, userId, inArray(blocks.date, dates)))
     .groupBy(blocks.date);
-  const next = new Map(counts.map((entry) => [entry.date, entry.count]));
+  const next = new Map(counts.map((entry) => [entry.date, entry.max + 1]));
   const values = rows.map((row) => {
     const position = next.get(row.date) ?? 0;
     next.set(row.date, position + 1);
@@ -157,6 +158,7 @@ export const blockService = {
 
   async create(userId: string, input: CreateBlockInput): Promise<BlockResponse> {
     return db.transaction(async (tx) => {
+      await lockUser(tx, userId);
       await assertNodeOwned(tx, userId, input.nodeId);
       if (input.eventId) await assertEventOwned(tx, userId, input.eventId);
       const day = await loadDay(tx, userId, input.date);
@@ -169,7 +171,7 @@ export const blockService = {
           date: input.date,
           timeOfDay: input.timeOfDay ?? null,
           plannedMinutes: input.plannedMinutes ?? null,
-          position: day.length,
+          position: Math.max(-1, ...day.map((row) => row.position)) + 1,
         })
         .returning();
       if (input.position !== undefined && input.position < day.length) {
@@ -186,6 +188,7 @@ export const blockService = {
 
   async update(userId: string, id: string, patch: UpdateBlockInput): Promise<BlockResponse> {
     return db.transaction(async (tx) => {
+      await lockUser(tx, userId);
       const [row] = await tx
         .select()
         .from(blocks)
