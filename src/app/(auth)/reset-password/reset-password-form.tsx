@@ -2,26 +2,32 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { z } from "zod";
 
+import { PasswordField } from "@/components/shared/password-field";
+import { Button } from "@/components/ui/button";
+import { messages } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/client";
 import { resetPasswordSchema } from "@/validators/auth.validator";
 
 export function ResetPasswordForm() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
+    const form = event.currentTarget;
+    setFormError(null);
 
-    const parsed = resetPasswordSchema.safeParse(
-      Object.fromEntries(new FormData(event.currentTarget)),
-    );
+    const parsed = resetPasswordSchema.safeParse(Object.fromEntries(new FormData(form)));
     if (!parsed.success) {
-      setError(parsed.error.issues[0].message);
+      setPasswordError(z.flattenError(parsed.error).fieldErrors.password?.[0]);
+      form.querySelector<HTMLInputElement>('[name="password"]')?.focus();
       return;
     }
+    setPasswordError(undefined);
 
     setLoading(true);
     const supabase = createClient();
@@ -31,40 +37,33 @@ export function ResetPasswordForm() {
 
     if (authError) {
       setLoading(false);
-      setError(authError.message);
+      setFormError(messages.serverError);
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/today");
     router.refresh();
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Set new password</h1>
+    <div>
+      <h1 className="text-h1 font-semibold tracking-[-0.02em]">Set a new password</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium">New password</span>
-          <input
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            className="w-full rounded-md border border-foreground/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-foreground/50"
-          />
-        </label>
+      <form onSubmit={handleSubmit} noValidate className="mt-7 flex flex-col gap-5">
+        <PasswordField
+          label="New password"
+          name="password"
+          autoComplete="new-password"
+          placeholder="••••••••"
+          error={passwordError}
+          onChange={() => setPasswordError(undefined)}
+        />
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {formError && <p className="text-small text-danger">{formError}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
-        >
-          {loading ? "Updating..." : "Update password"}
-        </button>
+        <Button type="submit" disabled={loading} className="mt-2 w-full">
+          Save password
+        </Button>
       </form>
     </div>
   );

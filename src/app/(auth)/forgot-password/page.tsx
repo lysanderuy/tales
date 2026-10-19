@@ -2,87 +2,79 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { z } from "zod";
 
+import { Button } from "@/components/ui/button";
+import { TextField } from "@/components/ui/text-field";
+import { messages } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/client";
 import { forgotPasswordSchema } from "@/validators/auth.validator";
 
 export default function ForgotPasswordPage() {
-  const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
+    const form = event.currentTarget;
 
-    const parsed = forgotPasswordSchema.safeParse(
-      Object.fromEntries(new FormData(event.currentTarget)),
-    );
+    const parsed = forgotPasswordSchema.safeParse(Object.fromEntries(new FormData(form)));
     if (!parsed.success) {
-      setError(parsed.error.issues[0].message);
+      setEmailError(z.flattenError(parsed.error).fieldErrors.email?.[0]);
+      form.querySelector<HTMLInputElement>('[name="email"]')?.focus();
       return;
     }
+    setEmailError(undefined);
 
     setLoading(true);
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    // The reply is the same whether or not the email has an account, so the result is ignored.
+    await supabase.auth.resetPasswordForEmail(parsed.data.email, {
       redirectTo: `${location.origin}/api/auth/callback?next=/reset-password`,
     });
     setLoading(false);
-
-    if (authError) {
-      setError(authError.message);
-      return;
-    }
-
-    setEmailSent(true);
+    setSentTo(parsed.data.email);
   }
 
-  if (emailSent) {
+  if (sentTo) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-semibold">Check your email</h1>
-        <p className="text-sm text-foreground/70">
-          If an account exists for that email, we sent a password reset link.
+      <div>
+        <h1 className="text-h1 font-semibold tracking-[-0.02em]">Check your email</h1>
+        <p className="mt-2 text-ui text-text-soft">{messages.authResetSent(sentTo)}</p>
+        <p className="mt-7 text-center text-small">
+          <Link href="/login" className="px-1 font-medium text-primary">
+            Back to sign in
+          </Link>
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Reset password</h1>
-      <p className="text-sm text-foreground/70">
-        Enter your email and we&apos;ll send you a reset link.
-      </p>
+    <div>
+      <h1 className="text-h1 font-semibold tracking-[-0.02em]">Reset your password</h1>
+      <p className="mt-2 text-ui text-text-soft">{messages.authResetIntro}</p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Email</span>
-          <input
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="w-full rounded-md border border-foreground/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-foreground/50"
-          />
-        </label>
+      <form onSubmit={handleSubmit} noValidate className="mt-7 flex flex-col gap-5">
+        <TextField
+          label="Email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder="maria@example.com"
+          error={emailError}
+          onChange={() => setEmailError(undefined)}
+        />
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
-        >
-          {loading ? "Sending..." : "Send reset link"}
-        </button>
+        <Button type="submit" disabled={loading} className="mt-2 w-full">
+          Send email
+        </Button>
       </form>
 
-      <p className="text-sm text-foreground/70">
-        Remembered it?{" "}
-        <Link href="/login" className="underline hover:text-foreground">
-          Sign in
+      <p className="mt-5 text-center text-small">
+        <Link href="/login" className="px-1 font-medium text-primary">
+          Back to sign in
         </Link>
       </p>
     </div>

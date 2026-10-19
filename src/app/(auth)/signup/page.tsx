@@ -3,52 +3,89 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { z } from "zod";
 
+import { PasswordField } from "@/components/shared/password-field";
+import { Button } from "@/components/ui/button";
+import { TextField } from "@/components/ui/text-field";
+import { messages } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/client";
 import { signUpSchema } from "@/validators/auth.validator";
 
+const fieldOrder = ["displayName", "email", "password"] as const;
+type FieldName = (typeof fieldOrder)[number];
+type FieldErrors = Partial<Record<FieldName, string>>;
+
 export default function SignupPage() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
 
+  function showFieldErrors(form: HTMLFormElement, errors: FieldErrors) {
+    setFieldErrors(errors);
+    const firstInvalid = fieldOrder.find((name) => errors[name]);
+    if (firstInvalid) form.querySelector<HTMLInputElement>(`[name="${firstInvalid}"]`)?.focus();
+  }
+
+  function clearError(name: FieldName) {
+    setFieldErrors((current) => ({ ...current, [name]: undefined }));
+    setFormError(null);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
+    const form = event.currentTarget;
+    setFormError(null);
 
-    const parsed = signUpSchema.safeParse(Object.fromEntries(new FormData(event.currentTarget)));
+    const parsed = signUpSchema.safeParse(Object.fromEntries(new FormData(form)));
     if (!parsed.success) {
-      setError(parsed.error.issues[0].message);
+      const flat = z.flattenError(parsed.error).fieldErrors;
+      showFieldErrors(form, {
+        displayName: flat.displayName?.[0],
+        email: flat.email?.[0],
+        password: flat.password?.[0],
+      });
       return;
     }
+    setFieldErrors({});
 
     setLoading(true);
     const supabase = createClient();
+    const { displayName, email, password } = parsed.data;
     const { data, error: authError } = await supabase.auth.signUp({
-      ...parsed.data,
+      email,
+      password,
       options: {
+        data: { display_name: displayName },
         emailRedirectTo: `${location.origin}/api/auth/callback`,
       },
     });
 
-    if (authError) {
+    // With email confirmation on, Supabase hides duplicates: no error, empty identities.
+    if (authError?.code === "user_already_exists" || data.user?.identities?.length === 0) {
       setLoading(false);
-      setError(authError.message);
+      showFieldErrors(form, { email: messages.authEmailTaken });
       return;
     }
 
-    // Email confirmation disabled in Supabase -> session is immediate.
+    if (authError) {
+      setLoading(false);
+      setFormError(messages.serverError);
+      return;
+    }
+
     if (data.session) {
-      router.push("/dashboard");
+      router.push("/today");
       router.refresh();
       return;
     }
 
     setLoading(false);
-    setSubmittedEmail(parsed.data.email);
+    setSubmittedEmail(email);
     setEmailSent(true);
   }
 
@@ -63,79 +100,80 @@ export default function SignupPage() {
     });
 
     if (resendError) {
-      setError(resendError.message);
+      setFormError(messages.serverError);
       return;
     }
 
-    setError(null);
+    setFormError(null);
     setResent(true);
   }
 
   if (emailSent) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-semibold">Check your email</h1>
-        <p className="text-sm text-foreground/70">
-          We sent you a confirmation link. Click it to finish creating your account.
-        </p>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {resent ? (
-          <p className="text-sm text-foreground/70">Confirmation email sent again.</p>
-        ) : (
-          <button
-            type="button"
-            onClick={handleResend}
-            className="text-sm underline hover:text-foreground/70"
-          >
-            Didn&apos;t get it? Resend
-          </button>
-        )}
+      <div>
+        <h1 className="text-h1 font-semibold tracking-[-0.02em]">Check your email</h1>
+        <p className="mt-2 text-ui text-text-soft">{messages.authCheckEmailBody}</p>
+        {formError && <p className="mt-5 text-small text-danger">{formError}</p>}
+        <div className="mt-7 text-center">
+          {resent ? (
+            <p className="text-small text-text-soft">{messages.authConfirmationResent}</p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleResend}
+              className="press rounded-full px-3 py-1.5 text-small font-medium text-primary hover:bg-fill"
+            >
+              Didn&apos;t get it? Send again
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Create account</h1>
+    <div>
+      <h1 className="text-h1 font-semibold tracking-[-0.02em]">Create your account</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Email</span>
-          <input
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="w-full rounded-md border border-foreground/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-foreground/50"
-          />
-        </label>
+      <form onSubmit={handleSubmit} noValidate className="mt-7 flex flex-col gap-5">
+        <TextField
+          label="Display name"
+          name="displayName"
+          type="text"
+          autoComplete="name"
+          maxLength={60}
+          placeholder="Maria Santos"
+          error={fieldErrors.displayName}
+          onChange={() => clearError("displayName")}
+        />
+        <TextField
+          label="Email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder="maria@example.com"
+          error={fieldErrors.email}
+          onChange={() => clearError("email")}
+        />
+        <PasswordField
+          label="Password"
+          name="password"
+          autoComplete="new-password"
+          placeholder="••••••••"
+          error={fieldErrors.password}
+          onChange={() => clearError("password")}
+        />
 
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Password</span>
-          <input
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            className="w-full rounded-md border border-foreground/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-foreground/50"
-          />
-        </label>
+        {formError && <p className="text-small text-danger">{formError}</p>}
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
-        >
-          {loading ? "Creating account..." : "Sign up"}
-        </button>
+        <Button type="submit" disabled={loading} className="mt-2 w-full">
+          Sign up
+        </Button>
       </form>
 
-      <p className="text-sm text-foreground/70">
+      <p className="mt-5 text-center text-small text-text-soft">
         Already have an account?{" "}
-        <Link href="/login" className="underline hover:text-foreground">
+        <Link href="/login" className="px-1 font-medium text-primary">
           Sign in
         </Link>
       </p>

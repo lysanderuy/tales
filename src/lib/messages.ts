@@ -34,6 +34,15 @@ export const messages = {
   eventMarkNotAllowed: "Marks can only go on what this event covers or has planned.",
   builtInSetReadOnly:
     "Built-in sets and their lines can't be changed. You can hide a line instead.",
+  authInvalidCredentials: "Email or password is wrong.",
+  authEmailTaken: "That email already has an account.",
+  authEmailNotConfirmed: "Confirm your email first. We can send the email again.",
+  authConfirmationSent: "Confirmation email sent. Check your inbox.",
+  authConfirmationResent: "Confirmation email sent again.",
+  authCheckEmailBody: "We sent a confirmation email. Open it to finish creating your account.",
+  authResetIntro: "Enter your email and we'll send you a way to reset your password.",
+  authResetSent: (email: string) =>
+    `If ${email} has an account, a way to reset your password is on its way.`,
   overlapsWith: (name: string, from: string, to: string) =>
     `That overlaps with ${name}, ${from} to ${to}.`,
 } as const;

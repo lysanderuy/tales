@@ -3,12 +3,20 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { z } from "zod";
 
+import { PasswordField } from "@/components/shared/password-field";
+import { Button } from "@/components/ui/button";
+import { TextField } from "@/components/ui/text-field";
 import { messages } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/client";
 import { signInSchema } from "@/validators/auth.validator";
 
 const callbackErrorMessages = new Map([["callback_failed", messages.authCallbackFailed]]);
+
+const fieldOrder = ["email", "password"] as const;
+type FieldName = (typeof fieldOrder)[number];
+type FieldErrors = Partial<Record<FieldName, string>>;
 
 // useSearchParams requires a Suspense boundary above it.
 export default function LoginPage() {
@@ -23,6 +31,7 @@ function LoginForm() {
   const router = useRouter();
   // /api/auth/callback redirects here with ?error=; only known values are shown.
   const callbackError = callbackErrorMessages.get(useSearchParams().get("error") ?? "") ?? null;
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
@@ -30,17 +39,28 @@ function LoginForm() {
 
   const displayError = error ?? (resent ? null : callbackError);
 
+  function clearError(name: FieldName) {
+    setFieldErrors((current) => ({ ...current, [name]: undefined }));
+    setError(null);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setError(null);
     setUnconfirmedEmail(null);
     setResent(false);
 
-    const parsed = signInSchema.safeParse(Object.fromEntries(new FormData(event.currentTarget)));
+    const parsed = signInSchema.safeParse(Object.fromEntries(new FormData(form)));
     if (!parsed.success) {
-      setError(parsed.error.issues[0].message);
+      const flat = z.flattenError(parsed.error).fieldErrors;
+      const errors: FieldErrors = { email: flat.email?.[0], password: flat.password?.[0] };
+      setFieldErrors(errors);
+      const firstInvalid = fieldOrder.find((name) => errors[name]);
+      if (firstInvalid) form.querySelector<HTMLInputElement>(`[name="${firstInvalid}"]`)?.focus();
       return;
     }
+    setFieldErrors({});
 
     setLoading(true);
     const supabase = createClient();
@@ -50,12 +70,16 @@ function LoginForm() {
       setLoading(false);
       if (authError.code === "email_not_confirmed") {
         setUnconfirmedEmail(parsed.data.email);
+        setError(messages.authEmailNotConfirmed);
+      } else if (authError.code === "invalid_credentials") {
+        setError(messages.authInvalidCredentials);
+      } else {
+        setError(messages.serverError);
       }
-      setError(authError.message);
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/today");
     router.refresh();
   }
 
@@ -70,7 +94,7 @@ function LoginForm() {
     });
 
     if (resendError) {
-      setError(resendError.message);
+      setError(messages.serverError);
       return;
     }
 
@@ -79,66 +103,58 @@ function LoginForm() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Sign in</h1>
+    <div>
+      <h1 className="text-h1 font-semibold tracking-[-0.02em]">Welcome back</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Email</span>
-          <input
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="w-full rounded-md border border-foreground/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-foreground/50"
+      <form onSubmit={handleSubmit} noValidate className="mt-7 flex flex-col gap-5">
+        <TextField
+          label="Email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder="maria@example.com"
+          error={fieldErrors.email}
+          onChange={() => clearError("email")}
+        />
+        <div>
+          <PasswordField
+            label="Password"
+            name="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            error={fieldErrors.password}
+            onChange={() => clearError("password")}
           />
-        </label>
-
-        <label className="block space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Password</span>
+          <div className="mt-2 flex justify-end">
             <Link
               href="/forgot-password"
-              className="text-sm text-foreground/70 underline hover:text-foreground"
+              className="rounded-full px-3 py-1.5 text-small text-text-faint hover:bg-fill hover:text-text-soft"
             >
-              Forgot password?
+              Forgot password
             </Link>
           </div>
-          <input
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            className="w-full rounded-md border border-foreground/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-foreground/50"
-          />
-        </label>
+        </div>
 
-        {displayError && <p className="text-sm text-red-500">{displayError}</p>}
+        {displayError && <p className="text-small text-danger">{displayError}</p>}
         {unconfirmedEmail && !resent && (
           <button
             type="button"
             onClick={handleResend}
-            className="text-sm underline hover:text-foreground/70"
+            className="press self-start rounded-full px-3 py-1.5 text-small font-medium text-primary hover:bg-fill"
           >
-            Resend confirmation email
+            Send confirmation email again
           </button>
         )}
-        {resent && (
-          <p className="text-sm text-foreground/70">Confirmation email sent — check your inbox.</p>
-        )}
+        {resent && <p className="text-small text-text-soft">{messages.authConfirmationSent}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
-        >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
+        <Button type="submit" disabled={loading} className="w-full">
+          Sign in
+        </Button>
       </form>
 
-      <p className="text-sm text-foreground/70">
-        No account?{" "}
-        <Link href="/signup" className="underline hover:text-foreground">
+      <p className="mt-5 text-center text-small text-text-soft">
+        Don&apos;t have an account?{" "}
+        <Link href="/signup" className="px-1 font-medium text-primary">
           Sign up
         </Link>
       </p>

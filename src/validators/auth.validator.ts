@@ -1,21 +1,25 @@
 import { z } from "zod";
 
+const email = z.string().trim().min(1, "Enter your email.").pipe(z.email("Enter a valid email."));
+const newPassword = z.string().min(8, "Password needs at least 8 characters.");
+
 export const signInSchema = z.object({
-  email: z.email("Enter a valid email"),
-  password: z.string().min(1, "Password is required"),
+  email,
+  password: z.string().min(1, "Enter your password."),
 });
 
 export const signUpSchema = z.object({
-  email: z.email("Enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  displayName: z.string().trim().min(1, "Enter a display name.").max(60),
+  email,
+  password: newPassword,
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.email("Enter a valid email"),
+  email,
 });
 
 export const resetPasswordSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: newPassword,
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;
