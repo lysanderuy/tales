@@ -2,6 +2,17 @@ export function secondsToMinutes(seconds: number): number {
   return Math.round(seconds / 60);
 }
 
+// Largest-remainder rounding so the whole-minute rows sum exactly to the rounded total.
+export function allocateMinutes(secondsList: number[], totalSeconds: number): number[] {
+  const minutes = secondsList.map((s) => Math.floor(s / 60));
+  const missing = secondsToMinutes(totalSeconds) - minutes.reduce((sum, m) => sum + m, 0);
+  const order = secondsList
+    .map((s, i) => ({ i, s, remainder: s / 60 - minutes[i] }))
+    .sort((a, b) => b.remainder - a.remainder || b.s - a.s || a.i - b.i);
+  for (const { i } of order.slice(0, Math.max(0, missing))) minutes[i] += 1;
+  return minutes;
+}
+
 export function formatMinutes(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;

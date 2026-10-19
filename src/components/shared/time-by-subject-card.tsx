@@ -2,7 +2,7 @@ import { CardHeader } from "@/components/shared/card-header";
 import { Card } from "@/components/ui/card";
 import { Swatch } from "@/components/ui/swatch";
 import { messages } from "@/lib/messages";
-import { formatSeconds, splitTotal } from "@/lib/today/format";
+import { allocateMinutes, formatMinutes, secondsToMinutes } from "@/lib/today/format";
 import { resolveSubject, type SubjectIndex } from "@/lib/today/subject-index";
 import type { TodayResponse } from "@/validators/today.validator";
 
@@ -28,7 +28,13 @@ export function TimeBySubjectCard({
       ...entry,
       subject: resolveSubject(index, entry.rootId, messages.todayUnknownSubject),
     }));
-  const { hours, minutes } = splitTotal(totalSeconds);
+  const totalMinutes = secondsToMinutes(totalSeconds);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const rowMinutes = allocateMinutes(
+    entries.map((entry) => entry.seconds),
+    totalSeconds,
+  );
 
   return (
     <Card className={className}>
@@ -52,21 +58,21 @@ export function TimeBySubjectCard({
             ) : null}
           </div>
           <div className="flex h-3.5 gap-0.5 overflow-hidden rounded-full bg-fill">
-            {entries.map((entry) => (
+            {entries.map((entry, i) => (
               <span
                 key={entry.rootId}
-                title={`${entry.subject.name} ${formatSeconds(entry.seconds)}`}
+                title={`${entry.subject.name} ${formatMinutes(rowMinutes[i])}`}
                 className="block h-full"
                 style={{ flex: entry.seconds, background: entry.subject.color }}
               />
             ))}
           </div>
           <ul className="mt-3.5">
-            {entries.map((entry) => (
+            {entries.map((entry, i) => (
               <li key={entry.rootId} className="flex items-center gap-2.5 py-[7px] text-ui">
                 <Swatch color={entry.subject.color} />
                 {entry.subject.name}
-                <span className="num ml-auto text-text-soft">{formatSeconds(entry.seconds)}</span>
+                <span className="num ml-auto text-text-soft">{formatMinutes(rowMinutes[i])}</span>
               </li>
             ))}
           </ul>

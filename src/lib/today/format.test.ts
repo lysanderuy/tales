@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  allocateMinutes,
   formatDateEyebrow,
   formatDayLabel,
   formatDaysAway,
@@ -106,5 +107,42 @@ describe("formatTimeRanges", () => {
         "now",
       ),
     ).toBe("13:00–13:40, 15:00–now");
+  });
+});
+
+describe("allocateMinutes", () => {
+  it("gives the extra minute to the largest remainder", () => {
+    expect(allocateMinutes([1824, 1824], 3648)).toEqual([31, 30]);
+  });
+
+  it("leaves exact minutes unchanged", () => {
+    expect(allocateMinutes([600, 1200, 60], 1860)).toEqual([10, 20, 1]);
+  });
+
+  it("returns an empty list for no rows", () => {
+    expect(allocateMinutes([], 0)).toEqual([]);
+  });
+
+  it("keeps a zero-second row at zero", () => {
+    expect(allocateMinutes([0, 90], 90)).toEqual([0, 2]);
+  });
+
+  it("breaks remainder ties by larger seconds, then input order", () => {
+    expect(allocateMinutes([90, 150, 90], 330)).toEqual([2, 3, 1]);
+    expect(allocateMinutes([30, 30], 60)).toEqual([1, 0]);
+  });
+
+  it("sums rows to the rounded total for random inputs", () => {
+    for (let run = 0; run < 500; run++) {
+      const rows = Array.from({ length: 1 + Math.floor(Math.random() * 8) }, () =>
+        Math.floor(Math.random() * 20000),
+      );
+      const total = rows.reduce((sum, s) => sum + s, 0);
+      const result = allocateMinutes(rows, total);
+      expect(result.reduce((sum, m) => sum + m, 0)).toBe(secondsToMinutes(total));
+      result.forEach((m, i) => {
+        expect(Math.abs(m - rows[i] / 60)).toBeLessThan(1);
+      });
+    }
   });
 });
