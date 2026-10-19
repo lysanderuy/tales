@@ -7,7 +7,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   DATABASE_URL: z.string().min(1),
   // Server-only. Needed to delete a user's account (Supabase admin API).
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 });
 
 type Env = z.infer<typeof envSchema>;

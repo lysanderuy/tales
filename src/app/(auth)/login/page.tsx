@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
+import { messages } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/client";
 import { signInSchema } from "@/validators/auth.validator";
+
+const callbackErrorMessages = new Map([["callback_failed", messages.authCallbackFailed]]);
 
 // useSearchParams requires a Suspense boundary above it.
 export default function LoginPage() {
@@ -18,8 +21,8 @@ export default function LoginPage() {
 
 function LoginForm() {
   const router = useRouter();
-  // Errors passed by /api/auth/callback (e.g. expired confirmation link).
-  const callbackError = useSearchParams().get("error");
+  // /api/auth/callback redirects here with ?error=; only known values are shown.
+  const callbackError = callbackErrorMessages.get(useSearchParams().get("error") ?? "") ?? null;
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);

@@ -1,5 +1,6 @@
 export const messages = {
   unauthorized: "Please sign in to continue.",
+  authCallbackFailed: "We couldn't sign you in. Please try again.",
   notFound: "We couldn't find that.",
   profileNotFound: "We couldn't find your profile.",
   invalidRequest: "That request didn't look right. Please check it and try again.",
