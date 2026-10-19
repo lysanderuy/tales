@@ -1,11 +1,14 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-// Example table — replace/extend per project. `id` mirrors `auth.users.id`.
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey(),
   email: text("email").notNull(),
-  displayName: text("display_name"),
-  welcomeEmailSentAt: timestamp("welcome_email_sent_at", { withTimezone: true }),
+  displayName: text("display_name").notNull(),
+  school: text("school"),
+  reviewCenter: text("review_center"),
+  examDate: date("exam_date", { mode: "string" }),
+  timeZone: text("time_zone").notNull().default("Asia/Manila"),
+  soundOn: boolean("sound_on").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

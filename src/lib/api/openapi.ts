@@ -17,7 +17,7 @@ const errorEnvelope = z.object({
 export const openApiDocument = createDocument({
   openapi: "3.1.0",
   info: {
-    title: "Starter Stack API",
+    title: "Tales API",
     version: "1.0.0",
   },
   paths: {
@@ -73,6 +73,29 @@ export const openApiDocument = createDocument({
           },
           "422": {
             description: "Validation error.",
+            content: {
+              "application/json": { schema: errorEnvelope },
+            },
+          },
+        },
+      },
+    },
+    "/api/account": {
+      delete: {
+        summary: "Delete the authenticated user's account and all of their data",
+        responses: {
+          "200": {
+            description: "Account deleted.",
+            content: {
+              "application/json": {
+                schema: successEnvelope(
+                  z.object({ deleted: z.literal(true).meta({ example: true }) }),
+                ),
+              },
+            },
+          },
+          "401": {
+            description: "Unauthorized.",
             content: {
               "application/json": { schema: errorEnvelope },
             },

@@ -1,0 +1,1 @@
+ALTER TABLE "profiles" DROP COLUMN "welcome_email_sent_at";

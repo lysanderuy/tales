@@ -6,8 +6,6 @@ import type { Profile } from "@/db/schema";
 import { api } from "@/lib/api/client";
 import type { UpdateProfileInput } from "@/validators/profile.validator";
 
-// Example server-state hooks — replace/extend per project.
-
 export const profileKeys = {
   me: ["profile", "me"] as const,
 };

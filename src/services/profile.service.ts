@@ -6,7 +6,6 @@ import { db } from "@/db";
 import { profiles, type Profile } from "@/db/schema";
 import type { UpdateProfileInput } from "@/validators/profile.validator";
 
-// Example service — replace/extend per project.
 export const profileService = {
   async getById(id: string): Promise<Profile | undefined> {
     return db.query.profiles.findFirst({

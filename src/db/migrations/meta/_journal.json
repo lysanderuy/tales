@@ -22,6 +22,34 @@
       "when": 1781353844149,
       "tag": "0002_profiles_welcome_email_sent_at",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792414743271,
+      "tag": "0003_profile-drop-welcome-email",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792414747465,
+      "tag": "0004_profile-display-name-backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792414754174,
+      "tag": "0005_profile-tales-fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792414758371,
+      "tag": "0006_profile-signup-trigger",
+      "breakpoints": true
     }
   ]
 }
