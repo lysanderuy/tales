@@ -58,8 +58,7 @@ export default function SignupPage() {
       },
     });
 
-    // With email confirmation on, Supabase hides duplicates: no error, empty identities.
-    if (authError?.code === "user_already_exists" || data.user?.identities?.length === 0) {
+    if (authError?.code === "user_already_exists") {
       setLoading(false);
       showFieldErrors(form, { email: messages.authEmailTaken });
       return;
