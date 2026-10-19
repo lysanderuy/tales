@@ -50,6 +50,13 @@
       "when": 1792414758371,
       "tag": "0006_profile-signup-trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792415075804,
+      "tag": "0007_create-outline-nodes",
+      "breakpoints": true
     }
   ]
 }

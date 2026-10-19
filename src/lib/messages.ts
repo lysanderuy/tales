@@ -8,4 +8,11 @@ export const messages = {
   conflictOverlap: "That overlaps with something you already have.",
   conflictReference: "That can't be changed because something else depends on it.",
   invalidValue: "One of the values isn't allowed.",
+  nodeNameTaken: "That name is already used here.",
+  nodeNameInvalidChar: "Names can't include the > character.",
+  nodeNameLength: "Names need 1 to 80 characters.",
+  examWeightInvalid: "Exam weight is a number from 0 to 100 with at most one decimal.",
+  nodeHasRecords: "This has study time or plans attached. Archive it instead.",
+  nodeMoveIntoSelf: "It can't be moved under itself or anything inside it.",
+  nodeReorderMismatch: "That order doesn't match what is here now. Please refresh and try again.",
 } as const;
