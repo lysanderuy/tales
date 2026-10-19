@@ -17,7 +17,6 @@
     "db:migrate": "drizzle-kit migrate && node scripts/verify-db.mjs",
     "db:verify": "node scripts/verify-db.mjs",
     "db:auth-users": "node scripts/check-auth-users.mjs",
-    "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
   "lint-staged": {

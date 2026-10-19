@@ -251,5 +251,6 @@ Then:
 | `db:migrate`              | Run pending migrations, then RLS guardrail                 |
 | `db:verify`               | RLS guardrail — fails if any public table has RLS disabled |
 | `db:auth-users`           | Debug: list recent signups + email confirmation status     |
-| `db:push`                 | Push schema directly (prototyping only)                    |
 | `db:studio`               | Drizzle Studio data browser                                |
+
+Some constraints (the study-session exclusion constraint and the SET NULL column FKs from migrations 0009/0011/0013) live only in custom migrations, so never use schema push.
