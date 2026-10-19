@@ -48,15 +48,10 @@ export const moveOutlineNodeSchema = z.object({
   parentId: idSchema.nullable().meta({
     description: "New parent ID, or null to make it a Subject.",
   }),
-  position: z
-    .number()
-    .int()
-    .min(0)
-    .optional()
-    .meta({
-      description: "Zero-based place among the new siblings. Defaults to last.",
-      example: 0,
-    }),
+  position: z.number().int().min(0).optional().meta({
+    description: "Zero-based place among the new siblings. Defaults to last.",
+    example: 0,
+  }),
 });
 
 export type MoveOutlineNodeInput = z.infer<typeof moveOutlineNodeSchema>;
@@ -81,9 +76,34 @@ export const listOutlineNodesQuerySchema = z.object({
     .optional()
     .transform((value) => value === "true")
     .meta({ description: "Include archived items. Defaults to false.", example: "false" }),
+  includeTotals: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) => value === "true")
+    .meta({
+      description: "Add studied-time totals to each item. Defaults to false.",
+      example: "false",
+    }),
 });
 
 export type ListOutlineNodesQuery = z.infer<typeof listOutlineNodesQuerySchema>;
+
+const totalsSchema = z
+  .object({
+    totalSeconds: z
+      .number()
+      .meta({ description: "Studied seconds on this item and everything under it." }),
+    ownSeconds: z.number().meta({ description: "Studied seconds on this item alone." }),
+    last7DaysSeconds: z.number().meta({
+      description: "Studied seconds on this item and below over the last 7 days, today included.",
+    }),
+    lastStudiedAt: z
+      .string()
+      .datetime()
+      .nullable()
+      .meta({ description: "When the most recent study on this item or below started." }),
+  })
+  .meta({ id: "SubjectTotals", description: "Rolled-up studied time." });
 
 export const outlineNodeResponseSchema = z
   .object({
@@ -105,6 +125,7 @@ export const outlineNodeResponseSchema = z
     path: z
       .array(z.string())
       .meta({ description: "Names from the Subject down to this item.", example: ["Hematology"] }),
+    totals: totalsSchema.optional().meta({ description: "Present only when includeTotals=true." }),
     createdAt: z.string().datetime().meta({ example: "2026-01-01T00:00:00.000Z" }),
     updatedAt: z.string().datetime().meta({ example: "2026-01-15T09:30:00.000Z" }),
   })

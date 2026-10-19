@@ -7,7 +7,8 @@ import { owned } from "@/db/owned";
 import { outlineNodes, type OutlineNode } from "@/db/schema";
 import { AppError, mapDbError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
-import { isDescendant, nextColorIndex, orderedRows } from "@/lib/outline/tree";
+import { isDescendant, nextColorIndex, orderedRows, rollUp } from "@/lib/outline/tree";
+import { studySessionService, type NodeTotals } from "@/services/study-session.service";
 import type {
   CreateOutlineNodeInput,
   MoveOutlineNodeInput,
@@ -83,14 +84,57 @@ function usedRootColors(rows: OutlineNode[], exceptId?: string): number[] {
     .map((row) => row.colorIndex as number);
 }
 
+function secondsAndLast(totals: Map<string, NodeTotals>) {
+  const seconds = new Map<string, number>();
+  const last = new Map<string, Date>();
+  for (const [nodeId, value] of totals) {
+    seconds.set(nodeId, value.seconds);
+    last.set(nodeId, value.lastStartedAt);
+  }
+  return { seconds, last };
+}
+
+async function withTotals(
+  userId: string,
+  rows: OutlineNode[],
+  nodes: OutlineNodeResponse[],
+): Promise<OutlineNodeResponse[]> {
+  const now = new Date();
+  const recentFrom = await studySessionService.recentWindowStart(userId, now, 7);
+  const [allTime, recent] = await Promise.all([
+    studySessionService.totalsByNode(userId),
+    studySessionService.totalsByNode(userId, { from: recentFrom }),
+  ]);
+  const all = secondsAndLast(allTime);
+  const recentSeconds = secondsAndLast(recent);
+  const rolledAll = rollUp(rows, all.seconds, all.last);
+  const rolledRecent = rollUp(rows, recentSeconds.seconds, recentSeconds.last);
+
+  return nodes.map((node) => {
+    const total = rolledAll.get(node.id);
+    return {
+      ...node,
+      totals: {
+        totalSeconds: total?.totalSeconds ?? 0,
+        ownSeconds: total?.ownSeconds ?? 0,
+        last7DaysSeconds: rolledRecent.get(node.id)?.totalSeconds ?? 0,
+        lastStudiedAt: total?.lastStudiedAt?.toISOString() ?? null,
+      },
+    };
+  });
+}
+
 export const outlineNodeService = {
   async list(
     userId: string,
-    { includeArchived }: { includeArchived: boolean },
+    { includeArchived, includeTotals }: { includeArchived: boolean; includeTotals: boolean },
   ): Promise<OutlineNodeResponse[]> {
     const rows = await db.select().from(outlineNodes).where(owned(outlineNodes, userId));
     const annotated = annotate(rows);
-    return includeArchived ? annotated : annotated.filter((node) => !node.effectivelyArchived);
+    const visible = includeArchived
+      ? annotated
+      : annotated.filter((node) => !node.effectivelyArchived);
+    return includeTotals ? withTotals(userId, rows, visible) : visible;
   },
 
   async create(userId: string, input: CreateOutlineNodeInput): Promise<OutlineNodeResponse> {

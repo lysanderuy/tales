@@ -57,6 +57,20 @@
       "when": 1792415075804,
       "tag": "0007_create-outline-nodes",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792415418787,
+      "tag": "0008_create-study-sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792415425618,
+      "tag": "0009_study-sessions-no-overlap",
+      "breakpoints": true
     }
   ]
 }

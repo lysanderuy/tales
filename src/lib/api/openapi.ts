@@ -8,6 +8,16 @@ import {
   reorderOutlineNodesSchema,
   updateOutlineNodeSchema,
 } from "@/validators/outline-node.validator";
+import {
+  currentSessionResponseSchema,
+  extendSessionSchema,
+  listSessionsQuerySchema,
+  manualSessionSchema,
+  sessionResponseSchema,
+  startSessionSchema,
+  stopSessionSchema,
+  updateSessionSchema,
+} from "@/validators/study-session.validator";
 import { profileResponseSchema, updateProfileSchema } from "@/validators/profile.validator";
 
 function successEnvelope<T extends z.ZodType>(dataSchema: T) {
@@ -36,6 +46,32 @@ function errorResponse(description: string) {
 const subjectIdParams = z.object({
   id: z.string().uuid().meta({ description: "Subject or Topic ID." }),
 });
+
+const sessionIdParams = z.object({
+  id: z.string().uuid().meta({ description: "Timer or study record ID." }),
+});
+
+const sessionTags = ["Study timer"];
+
+function sessionAction(
+  summary: string,
+  ok: string,
+  extra: Record<string, ReturnType<typeof errorResponse>> = {},
+) {
+  return {
+    post: {
+      tags: sessionTags,
+      summary,
+      requestParams: { path: sessionIdParams },
+      responses: {
+        "200": jsonResponse(ok, sessionResponseSchema),
+        "401": errorResponse("Unauthorized."),
+        "404": errorResponse("Not found."),
+        ...extra,
+      },
+    },
+  };
+}
 
 export const openApiDocument = createDocument({
   openapi: "3.1.0",
@@ -195,6 +231,124 @@ export const openApiDocument = createDocument({
           "401": errorResponse("Unauthorized."),
           "404": errorResponse("Parent not found."),
           "422": errorResponse("Ids do not match the current children, or invalid input."),
+        },
+      },
+    },
+    "/api/sessions": {
+      get: {
+        tags: sessionTags,
+        summary: "List stopped study records, newest first, by local day or time range",
+        requestParams: { query: listSessionsQuerySchema },
+        responses: {
+          "200": jsonResponse("Study records.", z.array(sessionResponseSchema)),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Subject or Topic not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+      post: {
+        tags: sessionTags,
+        summary: "Start a timer. Returns the existing one (200) if a timer is already running.",
+        requestBody: { content: { "application/json": { schema: startSessionSchema } } },
+        responses: {
+          "200": jsonResponse(
+            "A timer was already running; it is returned unchanged.",
+            sessionResponseSchema,
+          ),
+          "201": jsonResponse("Timer started.", sessionResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Subject or Topic not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
+    "/api/sessions/current": {
+      get: {
+        tags: sessionTags,
+        summary: "Get the running or paused timer, else a stopped record waiting for a Subject",
+        responses: {
+          "200": jsonResponse("Current timer and server time.", currentSessionResponseSchema),
+          "401": errorResponse("Unauthorized."),
+        },
+      },
+    },
+    "/api/sessions/manual": {
+      post: {
+        tags: sessionTags,
+        summary: "Add a stopped record by hand",
+        requestBody: { content: { "application/json": { schema: manualSessionSchema } } },
+        responses: {
+          "201": jsonResponse("Added.", sessionResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Subject or Topic not found."),
+          "409": errorResponse("Overlaps another record; the message names it."),
+          "422": errorResponse("Validation error, or a time in the future."),
+        },
+      },
+    },
+    "/api/sessions/{id}": {
+      patch: {
+        tags: sessionTags,
+        summary: "Edit Subject or Topic, method, note, or (stopped records only) start and end",
+        requestParams: { path: sessionIdParams },
+        requestBody: { content: { "application/json": { schema: updateSessionSchema } } },
+        responses: {
+          "200": jsonResponse("Updated.", sessionResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+          "409": errorResponse("Overlaps another record; the message names it."),
+          "422": errorResponse("Validation error, or times edited while still running."),
+        },
+      },
+      delete: {
+        tags: sessionTags,
+        summary: "Delete a running, pending or stopped record",
+        requestParams: { path: sessionIdParams },
+        responses: {
+          "200": jsonResponse("Deleted.", z.object({ deleted: z.literal(true) })),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+        },
+      },
+    },
+    "/api/sessions/{id}/pause": sessionAction("Pause the timer", "Paused.", {
+      "409": errorResponse("Already paused, or nothing is running."),
+    }),
+    "/api/sessions/{id}/resume": sessionAction("Resume the timer", "Resumed.", {
+      "409": errorResponse("Not paused, or nothing is running."),
+    }),
+    "/api/sessions/{id}/heartbeat": sessionAction(
+      "Record that the app is open. Only moves the heartbeat while running.",
+      "Heartbeat recorded.",
+      { "409": errorResponse("Nothing is running.") },
+    ),
+    "/api/sessions/{id}/stop": {
+      post: {
+        tags: sessionTags,
+        summary: "Stop the timer now, or at an earlier time between the start and now",
+        requestParams: { path: sessionIdParams },
+        requestBody: { content: { "application/json": { schema: stopSessionSchema } } },
+        responses: {
+          "200": jsonResponse("Stopped.", sessionResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+          "409": errorResponse("Already stopped and a stop time was given."),
+          "422": errorResponse("Stop time is before the start or in the future."),
+        },
+      },
+    },
+    "/api/sessions/{id}/extend": {
+      post: {
+        tags: sessionTags,
+        summary: "Add time to a countdown, counted from the time studied so far",
+        requestParams: { path: sessionIdParams },
+        requestBody: { content: { "application/json": { schema: extendSessionSchema } } },
+        responses: {
+          "200": jsonResponse("Extended.", sessionResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+          "409": errorResponse("Nothing is running."),
+          "422": errorResponse("Not a countdown, or validation error."),
         },
       },
     },

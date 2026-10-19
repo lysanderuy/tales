@@ -15,4 +15,16 @@ export const messages = {
   nodeHasRecords: "This has study time or plans attached. Archive it instead.",
   nodeMoveIntoSelf: "It can't be moved under itself or anything inside it.",
   nodeReorderMismatch: "That order doesn't match what is here now. Please refresh and try again.",
+  timerAlreadyPaused: "It's already paused.",
+  timerNotPaused: "It isn't paused.",
+  timerNothingRunning: "Nothing is running right now.",
+  endBeforeStart: "End needs to be after the start.",
+  stopTimeOutOfRange: "Pick a time between the start and now.",
+  timeInFuture: "That time hasn't happened yet.",
+  extendOnlyCountdown: "Time can only be added to a countdown.",
+  timesEditStopped: "Start and end times can be changed once the timer is stopped.",
+  subjectRequired: "Pick a Subject or Topic first.",
+  noteTooLong: "Notes can be up to 5000 characters.",
+  overlapsWith: (name: string, from: string, to: string) =>
+    `That overlaps with ${name}, ${from} to ${to}.`,
 } as const;
