@@ -1,0 +1,139 @@
+/* ==========================================================================
+   Tales design tokens  ·  v1.0  ·  Oct 19, 2026
+   Source of truth: tales_design.yaml. Values taken from the settled
+   tales_today.html prototype.
+
+   Character: flat, pastel sage, quiet. No shadows. Hairline borders.
+   One deep-green hero card. Circular icon-only buttons. DM Sans.
+   ========================================================================== */
+
+:root {
+  /* ---- Color: surfaces ---- */
+  --bg: #EAF1E6;                       /* page */
+  --surface: #FBFCF8;                  /* cards, menus, picker */
+  --fill: rgba(31, 77, 58, .07);       /* inputs, chips, quiet buttons */
+  --fill-hover: rgba(31, 77, 58, .13);
+  --border: rgba(31, 77, 58, .12);     /* the only separator: hairline, 1px */
+  --material: rgba(251, 252, 248, .82);/* top bar, with 20px backdrop blur */
+  --scrim: rgba(15, 26, 20, .35);      /* behind dialogs */
+
+  /* ---- Color: text ---- */
+  --text: #1F2A24;
+  --text-soft: #5E6B63;
+  --text-faint: #86928A;               /* eyebrows, paths, placeholders */
+  --time: #1F4D3A;                     /* the clock and big figures */
+
+  /* ---- Color: brand and state ---- */
+  --primary: #2E6B4F;
+  --on-primary: #FFFFFF;
+  --primary-soft: rgba(46, 107, 79, .14);  /* active tab, selected chip, tinted button */
+  --hero: #2E6B4F;                     /* the one deep-green card */
+  --on-hero: #FFFFFF;
+  --on-hero-soft: rgba(255, 255, 255, .72);
+  --on-hero-line: rgba(255, 255, 255, .22);
+  --overtime: #CF7A33;                 /* apricot. Time past the plan. A fact, not a warning */
+  --danger: #B5483C;                   /* system messages only (errors, confirm delete). Never on study data */
+
+  /* ---- Color: Subject palette (pastel, same in light and dark) ----
+     Assigned per Subject in order, inherited by its Topics. */
+  --c-1: #C8B8E6;  /* lilac, ISBB */
+  --c-2: #F4D88C;  /* butter, Clinical Microscopy */
+  --c-3: #A9CBE8;  /* sky */
+  --c-4: #EDB4C2;  /* rose */
+  --c-5: #A8DBC0;  /* mint */
+  --c-6: #DCC7A8;  /* sand */
+  --c-7: #C5D8A4;  /* lime sage */
+  --c-8: #B9C3E8;  /* periwinkle */
+
+  /* ---- Typography ---- */
+  --font: var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fw-regular: 400;   /* the clock and big figures */
+  --fw-medium: 500;    /* eyebrows, tabs, buttons */
+  --fw-semibold: 600;  /* names, headings */
+
+  --fs-eyebrow: 12px;  /* uppercase, 500, tracking .1em */
+  --fs-caption: 13px;  /* paths, secondary lines */
+  --fs-small: 14px;
+  --fs-ui: 15px;       /* buttons, rows, tabs */
+  --fs-body: 16px;
+  --fs-name: 17px;     /* Subject name in Focus, running bar time */
+  --fs-h2: 18px;
+  --fs-logo: 20px;
+  --fs-h1: 28px;
+  --fs-total: 40px;    /* today's total */
+  --fs-end: clamp(64px, 8vw, 84px);        /* end screen duration */
+  --fs-hero: 88px;     /* days to boards */
+  --fs-timer: clamp(96px, 19vw, 200px);    /* Focus mode clock */
+
+  --lh-body: 1.45;
+  --lh-display: 1;
+  --ls-eyebrow: .1em;
+  --ls-h2: -0.01em;
+  --ls-h1: -0.02em;
+  --ls-display: -0.03em;
+
+  /* ---- Spacing (4px base) ---- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px; --sp-5: 20px;
+  --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-14: 56px; --sp-18: 72px;
+
+  /* ---- Radius ---- */
+  --radius-sm: 10px;    /* menu and picker rows */
+  --radius-md: 14px;    /* inputs, fields, menus */
+  --radius-picker: 18px;
+  --radius-lg: 24px;    /* cards, dialogs */
+  --radius-pill: 999px; /* buttons, chips, tabs, search */
+
+  /* ---- Elevation: none. Flat. Separation is a hairline border. ---- */
+  --shadow-none: none;
+  --border-width: 1px;
+
+  /* ---- Control sizes ---- */
+  --ctl-xs: 34px; --ctl-sm: 40px; --ctl-md: 44px; --ctl-xl: 56px; --ctl-lg: 80px;
+  --icon-stroke: 1.8;
+
+  /* ---- Layout ---- */
+  --page-max: 1200px;
+  --page-pad: 24px;
+  --grid-gap: 16px;
+  --card-pad: 24px;
+  --topbar-h: 64px;
+  --picker-w: 320px;
+  --picker-side-w: 280px;
+  --menu-w: 280px;
+  --dialog-w: 460px;
+  --endscreen-w: 460px;
+
+  /* ---- Breakpoints (use in @media; custom properties cannot) ----
+     --bp-tabs: 1000px  tabs leave the centre and sit inline
+     --bp-stack: 900px  grid columns stack to one column */
+
+  /* ---- Motion ---- */
+  --dur-fast: .15s;   /* hover, press */
+  --dur-base: .2s;
+  --dur-slow: .3s;    /* clock color change */
+
+  /* ---- Layers ---- */
+  --z-top: 5; --z-focus: 20; --z-dialog: 30; --z-float: 40;
+}
+
+[data-theme="dark"] {
+  --bg: #0F1A14;
+  --surface: #17241D;
+  --fill: rgba(200, 235, 215, .09);
+  --fill-hover: rgba(200, 235, 215, .16);
+  --border: rgba(200, 235, 215, .14);
+  --material: rgba(23, 36, 29, .85);
+  --text: #EAF2EC;
+  --text-soft: #A8B7AD;
+  --text-faint: #7D8C82;
+  --time: #D6EEDF;
+  --primary: #7CD3A5;
+  --on-primary: #0F2A1D;
+  --primary-soft: rgba(124, 211, 165, .16);
+  --hero: #1F4A36;
+  --on-hero: #EAF7EF;
+  --on-hero-soft: rgba(234, 247, 239, .7);
+  --on-hero-line: rgba(234, 247, 239, .2);
+  --overtime: #F0A263;
+  --danger: #E58B7F;
+}

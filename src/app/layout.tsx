@@ -1,31 +1,30 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
-
 import { QueryProvider } from "@/lib/query/provider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  axes: ["opsz"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "starter-stack",
-  description: "Next.js + Supabase + Drizzle + Zod boilerplate",
+  title: "Tales",
+  description: "A quiet study timer that keeps track of the time you put into each subject.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+const themeScript =
+  'try{if(window.matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.dataset.theme="dark"}}catch(e){}';
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${dmSans.variable} h-full`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <QueryProvider>{children}</QueryProvider>
       </body>
