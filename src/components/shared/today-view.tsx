@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { HeroCard } from "@/components/shared/hero-card";
 import { PastSevenDaysCard } from "@/components/shared/past-seven-days-card";
+import { RunningBar } from "@/components/shared/running-bar";
 import { StartControl } from "@/components/shared/start-control";
 import { TimeBySubjectCard } from "@/components/shared/time-by-subject-card";
 import { TodaySkeleton } from "@/components/shared/today-skeleton";
@@ -11,6 +12,7 @@ import { TodaysStudyCard } from "@/components/shared/todays-study-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { useSessionClock } from "@/hooks/use-session-clock";
 import { useSubjects } from "@/hooks/use-subjects";
 import { useToday } from "@/hooks/use-today";
 import { messages } from "@/lib/messages";
@@ -24,6 +26,8 @@ const narrow = "col-span-12 min-[900px]:col-span-5";
 export function TodayView() {
   const today = useToday();
   const subjects = useSubjects();
+
+  const { session, display } = useSessionClock();
 
   const index = useMemo(() => buildSubjectIndex(subjects.data ?? []), [subjects.data]);
 
@@ -64,7 +68,15 @@ export function TodayView() {
           </Eyebrow>
           <h1 className="text-h1 font-semibold tracking-[-0.02em]">{messages.todayTitle}</h1>
         </div>
-        <StartControl />
+        {session && display ? (
+          <RunningBar
+            session={session}
+            display={display}
+            subjectName={session.nodeId ? (index.get(session.nodeId)?.name ?? null) : null}
+          />
+        ) : (
+          <StartControl />
+        )}
       </div>
       <div className="grid grid-cols-12 gap-4">
         {hero.visible ? (

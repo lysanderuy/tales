@@ -1,6 +1,13 @@
+"use client";
+
 import { CardHeader } from "@/components/shared/card-header";
+import { PlayIcon } from "@/components/shared/icons";
 import { Card } from "@/components/ui/card";
+import { IconButton } from "@/components/ui/icon-button";
 import { Swatch } from "@/components/ui/swatch";
+import { useSessionClock } from "@/hooks/use-session-clock";
+import { useStartBlock } from "@/hooks/use-start-block";
+import { useStartSession } from "@/hooks/use-start-session";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
 import {
@@ -32,6 +39,7 @@ type RowView = {
   progress: string;
   bar: { percent: number } | null;
   live: boolean;
+  start: { blockId: string } | { nodeId: string } | null;
 };
 
 function toRowView(row: TodayRow, index: SubjectIndex): RowView {
@@ -46,6 +54,7 @@ function toRowView(row: TodayRow, index: SubjectIndex): RowView {
           ? { percent: progressPercent(row.plannedMinutes, row.progressSeconds) }
           : null,
       live: row.live,
+      start: { blockId: row.blockId },
     };
   }
 
@@ -59,11 +68,21 @@ function toRowView(row: TodayRow, index: SubjectIndex): RowView {
       : `${duration} · ${row.startClock}–${row.endClock ?? messages.todayRunningEnd}`,
     bar: null,
     live: row.live,
+    start: row.nodeId ? { nodeId: row.nodeId } : null,
   };
 }
 
 export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps) {
   const views = rows.map((row) => toRowView(row, index));
+  const { session, display } = useSessionClock();
+  const startBlock = useStartBlock();
+  const startSession = useStartSession();
+  const starting = startBlock.isPending || startSession.isPending;
+
+  const play = (start: NonNullable<RowView["start"]>) => {
+    if ("blockId" in start) startBlock.mutate({ blockId: start.blockId });
+    else startSession.mutate({ nodeId: start.nodeId, startedFrom: "free" });
+  };
 
   return (
     <Card className={className}>
@@ -106,7 +125,7 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
                   ) : null}
                 </div>
                 <div className="num min-w-[104px] whitespace-nowrap text-right text-small text-text-soft">
-                  {view.progress}
+                  {view.live && display ? display.text : view.progress}
                   {view.bar ? (
                     <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-fill">
                       <i
@@ -116,6 +135,18 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
                     </div>
                   ) : null}
                 </div>
+                {view.start && !session ? (
+                  <IconButton
+                    variant="tint"
+                    label={messages.todayStart}
+                    disabled={starting}
+                    onClick={() => play(view.start!)}
+                  >
+                    <PlayIcon />
+                  </IconButton>
+                ) : (
+                  <span aria-hidden="true" className="size-11 shrink-0" />
+                )}
               </li>
             );
           })}

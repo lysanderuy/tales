@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { ChevronDownIcon, PlayIcon } from "@/components/shared/icons";
 import { useDismiss } from "@/components/shared/use-dismiss";
+import { useStartSession } from "@/hooks/use-start-session";
 import { messages } from "@/lib/messages";
 
 const COUNTDOWN_MINUTES = [25, 45, 60] as const;
@@ -16,14 +17,23 @@ export function StartControl() {
   const containerRef = useRef<HTMLDivElement>(null);
   const chevronRef = useRef<HTMLButtonElement>(null);
 
+  const start = useStartSession();
+
+  const startWith = (plannedMinutes?: number) => {
+    setOpen(false);
+    start.mutate({ startedFrom: "free", plannedMinutes });
+  };
+
   const close = useCallback(() => setOpen(false), []);
-  const closeAndRestoreFocus = useDismiss(containerRef, chevronRef, open, close);
+  useDismiss(containerRef, chevronRef, open, close);
 
   return (
     <div ref={containerRef} className="relative flex">
       <button
         type="button"
-        className="press inline-flex items-center gap-2 rounded-l-full bg-primary py-2.5 pl-[18px] pr-3.5 text-ui font-medium text-on-primary hover:opacity-90"
+        disabled={start.isPending}
+        onClick={() => startWith()}
+        className="press inline-flex items-center gap-2 rounded-l-full bg-primary py-2.5 pl-[18px] pr-3.5 text-ui font-medium text-on-primary hover:opacity-90 disabled:opacity-50"
       >
         <PlayIcon />
         {messages.todayStart}
@@ -35,8 +45,9 @@ export function StartControl() {
         aria-label={messages.todayStartCountdown}
         aria-haspopup="true"
         aria-expanded={open}
+        disabled={start.isPending}
         onClick={() => setOpen((value) => !value)}
-        className="press inline-flex items-center rounded-r-full border-l border-on-primary/30 bg-primary py-2.5 pl-2.5 pr-3 text-on-primary hover:opacity-90"
+        className="press inline-flex items-center rounded-r-full border-l border-on-primary/30 bg-primary py-2.5 pl-2.5 pr-3 text-on-primary hover:opacity-90 disabled:opacity-50"
       >
         <ChevronDownIcon />
       </button>
@@ -46,7 +57,8 @@ export function StartControl() {
             <button
               key={minutes}
               type="button"
-              onClick={closeAndRestoreFocus}
+              disabled={start.isPending}
+              onClick={() => startWith(minutes)}
               className="flex w-full items-center rounded-row p-2.5 text-left text-ui hover:bg-fill"
             >
               {minutes} min
@@ -63,6 +75,14 @@ export function StartControl() {
               max={600}
               placeholder={messages.todayCustomMinutesPlaceholder}
               aria-label={messages.todayCustomMinutesLabel}
+              disabled={start.isPending}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                const minutes = Number(event.currentTarget.value);
+                if (Number.isInteger(minutes) && minutes >= 1 && minutes <= 600) {
+                  startWith(minutes);
+                }
+              }}
               className={inputClass}
             />
           </div>
