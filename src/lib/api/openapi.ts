@@ -29,6 +29,14 @@ import {
   updateSessionSchema,
 } from "@/validators/study-session.validator";
 import { profileResponseSchema, updateProfileSchema } from "@/validators/profile.validator";
+import { reportQuerySchema, reportResponseSchema } from "@/validators/report.validator";
+import {
+  nextUpQuerySchema,
+  nextUpResponseSchema,
+  pickerQuerySchema,
+  pickerResponseSchema,
+  todayResponseSchema,
+} from "@/validators/today.validator";
 
 function successEnvelope<T extends z.ZodType>(dataSchema: T) {
   return z.object({
@@ -459,6 +467,54 @@ export const openApiDocument = createDocument({
           "404": errorResponse("Not found."),
           "409": errorResponse("Nothing is running."),
           "422": errorResponse("Not a countdown, or validation error."),
+        },
+      },
+    },
+    "/api/today": {
+      get: {
+        tags: ["Today"],
+        summary: "Today's study, time by Subject, the past 7 days and days to boards",
+        responses: {
+          "200": jsonResponse("Today.", todayResponseSchema),
+          "401": errorResponse("Unauthorized."),
+        },
+      },
+    },
+    "/api/today/next-up": {
+      get: {
+        tags: ["Today"],
+        summary: "The next planned row for today, or null when none has time left",
+        requestParams: { query: nextUpQuerySchema },
+        responses: {
+          "200": jsonResponse("Next up.", nextUpResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
+    "/api/picker": {
+      get: {
+        tags: ["Today"],
+        summary:
+          "Choices for What are you studying: planned rows and recent items, or search results",
+        requestParams: { query: pickerQuerySchema },
+        responses: {
+          "200": jsonResponse("Picker choices.", pickerResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
+    "/api/reports": {
+      get: {
+        tags: ["Reports"],
+        summary: "Time studied per Subject, or per Topic when nodeId is given, over a range",
+        requestParams: { query: reportQuerySchema },
+        responses: {
+          "200": jsonResponse("Report.", reportResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Subject or Topic not found."),
+          "422": errorResponse("Validation error."),
         },
       },
     },

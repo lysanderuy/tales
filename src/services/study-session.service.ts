@@ -48,6 +48,12 @@ export interface NodeTotals {
   lastStartedAt: Date;
 }
 
+export interface DayNodeTotal {
+  date: string;
+  nodeId: string;
+  seconds: number;
+}
+
 function isUniqueOrOverlapViolation(error: unknown): boolean {
   const mapped = mapDbError(error);
   return (
@@ -606,5 +612,44 @@ export const studySessionService = {
       });
     }
     return totals;
+  },
+
+  // from/to are inclusive local day keys; a record counts on the local day it started.
+  async totalsByDayAndNode(
+    userId: string,
+    range: { from: string; to: string },
+    timeZone: string,
+  ): Promise<DayNodeTotal[]> {
+    const rows = await db.execute<{ day: string; node_id: string; seconds: string }>(sql`
+      select
+        to_char((s.started_at at time zone ${timeZone})::date, 'YYYY-MM-DD') as day,
+        s.node_id,
+        sum(greatest(extract(epoch from (s.ended_at - s.started_at)) - coalesce(p.paused_seconds, 0), 0)) as seconds
+      from study_sessions s
+      left join lateral (
+        select sum(extract(epoch from (coalesce(sp.resumed_at, s.ended_at) - sp.paused_at))) as paused_seconds
+        from session_pauses sp
+        where sp.session_id = s.id and sp.user_id = s.user_id
+      ) p on true
+      where s.user_id = ${userId}
+        and s.ended_at is not null
+        and s.node_id is not null
+        and (s.started_at at time zone ${timeZone})::date between ${range.from}::date and ${range.to}::date
+      group by 1, s.node_id
+    `);
+    return Array.from(rows, (row) => ({
+      date: row.day,
+      nodeId: row.node_id,
+      seconds: Number(row.seconds),
+    }));
+  },
+
+  async earliestStartDate(userId: string, timeZone: string): Promise<string | null> {
+    const rows = await db.execute<{ day: string | null }>(sql`
+      select to_char((min(s.started_at) at time zone ${timeZone})::date, 'YYYY-MM-DD') as day
+      from study_sessions s
+      where s.user_id = ${userId} and s.ended_at is not null and s.node_id is not null
+    `);
+    return Array.from(rows)[0]?.day ?? null;
   },
 };
