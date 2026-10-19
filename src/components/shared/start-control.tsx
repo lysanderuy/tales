@@ -17,16 +17,10 @@ export function StartControl() {
   const chevronRef = useRef<HTMLButtonElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
-  useDismiss(containerRef, open, close);
+  const closeAndRestoreFocus = useDismiss(containerRef, chevronRef, open, close);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative flex"
-      onKeyDown={(event) => {
-        if (event.key === "Escape" && open) chevronRef.current?.focus();
-      }}
-    >
+    <div ref={containerRef} className="relative flex">
       <button
         type="button"
         className="press inline-flex items-center gap-2 rounded-l-full bg-primary py-2.5 pl-[18px] pr-3.5 text-ui font-medium text-on-primary hover:opacity-90"
@@ -52,7 +46,7 @@ export function StartControl() {
             <button
               key={minutes}
               type="button"
-              onClick={close}
+              onClick={closeAndRestoreFocus}
               className="flex w-full items-center rounded-row p-2.5 text-left text-ui hover:bg-fill"
             >
               {minutes} min

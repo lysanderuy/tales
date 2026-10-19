@@ -5,6 +5,7 @@ import type { ComponentProps } from "react";
 
 import { IconButton } from "@/components/ui/icon-button";
 import { TextField } from "@/components/ui/text-field";
+import { messages } from "@/lib/messages";
 
 type PasswordFieldProps = Omit<ComponentProps<typeof TextField>, "type" | "trailing">;
 
@@ -33,7 +34,7 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
             size="sm"
             variant="fill"
             className="bg-transparent text-text-soft hover:bg-fill-hover"
-            label={visible ? "Hide password" : "Show password"}
+            label={visible ? messages.passwordHide : messages.passwordShow}
             onClick={() => setVisible((v) => !v)}
           >
             {visible ? (

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { z } from "zod";
 
 import { PasswordField } from "@/components/shared/password-field";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
+import { collectFieldErrors, focusFirstInvalid, type FieldErrors } from "@/lib/forms/field-errors";
 import { messages } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/client";
 import { signInSchema } from "@/validators/auth.validator";
@@ -16,7 +16,6 @@ const callbackErrorMessages = new Map([["callback_failed", messages.authCallback
 
 const fieldOrder = ["email", "password"] as const;
 type FieldName = (typeof fieldOrder)[number];
-type FieldErrors = Partial<Record<FieldName, string>>;
 
 // useSearchParams requires a Suspense boundary above it.
 export default function LoginPage() {
@@ -31,7 +30,7 @@ function LoginForm() {
   const router = useRouter();
   // /api/auth/callback redirects here with ?error=; only known values are shown.
   const callbackError = callbackErrorMessages.get(useSearchParams().get("error") ?? "") ?? null;
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<FieldName>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
@@ -53,11 +52,9 @@ function LoginForm() {
 
     const parsed = signInSchema.safeParse(Object.fromEntries(new FormData(form)));
     if (!parsed.success) {
-      const flat = z.flattenError(parsed.error).fieldErrors;
-      const errors: FieldErrors = { email: flat.email?.[0], password: flat.password?.[0] };
+      const errors = collectFieldErrors(parsed.error, fieldOrder);
       setFieldErrors(errors);
-      const firstInvalid = fieldOrder.find((name) => errors[name]);
-      if (firstInvalid) form.querySelector<HTMLInputElement>(`[name="${firstInvalid}"]`)?.focus();
+      focusFirstInvalid(form, errors, fieldOrder);
       return;
     }
     setFieldErrors({});
@@ -135,7 +132,11 @@ function LoginForm() {
           </div>
         </div>
 
-        {displayError && <p className="text-small text-danger">{displayError}</p>}
+        {displayError && (
+          <p role="alert" className="text-small text-danger">
+            {displayError}
+          </p>
+        )}
         {unconfirmedEmail && !resent && (
           <button
             type="button"

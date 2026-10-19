@@ -25,23 +25,14 @@ export function TodayView() {
   const today = useToday();
   const subjects = useSubjects();
 
-  const index = useMemo(
-    () => (subjects.data ? buildSubjectIndex(subjects.data) : null),
-    [subjects.data],
-  );
+  const index = useMemo(() => buildSubjectIndex(subjects.data ?? []), [subjects.data]);
 
-  if (today.isError || subjects.isError) {
+  if (today.isError && !today.data) {
     return (
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 pb-[72px] pt-8">
         <Card className="flex flex-col items-start gap-4">
           <p className="text-body">{messages.serverError}</p>
-          <Button
-            variant="fill"
-            onClick={() => {
-              if (today.isError) void today.refetch();
-              if (subjects.isError) void subjects.refetch();
-            }}
-          >
+          <Button variant="fill" onClick={() => void today.refetch()}>
             {messages.tryAgain}
           </Button>
         </Card>
@@ -49,7 +40,7 @@ export function TodayView() {
     );
   }
 
-  if (!today.data || !index) return <TodaySkeleton />;
+  if (!today.data || subjects.isPending) return <TodaySkeleton />;
 
   const data = today.data;
   const hero = decideHero(data);
@@ -68,7 +59,9 @@ export function TodayView() {
     <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 pb-[72px] pt-8">
       <div className="mb-5 flex min-h-14 items-end justify-between gap-4">
         <div>
-          <Eyebrow as="div">{formatDateEyebrow(data.todayDate)}</Eyebrow>
+          <Eyebrow as="div" className="num">
+            {formatDateEyebrow(data.todayDate)}
+          </Eyebrow>
           <h1 className="text-h1 font-semibold tracking-[-0.02em]">{messages.todayTitle}</h1>
         </div>
         <StartControl />

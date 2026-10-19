@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
@@ -22,16 +23,13 @@ type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "title" | "
   variant?: IconButtonVariant;
 };
 
-export function IconButton({
-  label,
-  size = "md",
-  variant = "fill",
-  className,
-  type = "button",
-  ...props
-}: IconButtonProps) {
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
+  { label, size = "md", variant = "fill", className, type = "button", ...props },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type={type}
       title={label}
       aria-label={label}
@@ -44,4 +42,4 @@ export function IconButton({
       {...props}
     />
   );
-}
+});

@@ -66,7 +66,7 @@ export function PastSevenDaysCard({ todayDate, days, index, className }: PastSev
               )}
               <div
                 className={cn(
-                  "whitespace-nowrap text-eyebrow",
+                  "num whitespace-nowrap text-eyebrow",
                   day.date === todayDate ? "font-semibold text-primary" : "text-text-soft",
                 )}
               >

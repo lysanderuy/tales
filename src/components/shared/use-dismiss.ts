@@ -1,30 +1,40 @@
 "use client";
 
-import { useEffect, type RefObject } from "react";
+import { useCallback, useEffect, type RefObject } from "react";
 
 export function useDismiss(
   containerRef: RefObject<HTMLElement | null>,
+  triggerRef: RefObject<HTMLElement | null>,
   open: boolean,
-  onDismiss: () => void,
+  onClose: () => void,
 ) {
+  const closeAndRestoreFocus = useCallback(() => {
+    onClose();
+    triggerRef.current?.focus();
+  }, [onClose, triggerRef]);
+
   useEffect(() => {
     if (!open) return;
 
-    function onPointerDown(event: PointerEvent) {
+    function onOutside(event: Event) {
       if (event.target instanceof Node && !containerRef.current?.contains(event.target)) {
-        onDismiss();
+        onClose();
       }
     }
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onDismiss();
+      if (event.key === "Escape") closeAndRestoreFocus();
     }
 
-    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("pointerdown", onOutside);
+    document.addEventListener("focusin", onOutside);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("pointerdown", onOutside);
+      document.removeEventListener("focusin", onOutside);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [containerRef, open, onDismiss]);
+  }, [containerRef, open, onClose, closeAndRestoreFocus]);
+
+  return closeAndRestoreFocus;
 }

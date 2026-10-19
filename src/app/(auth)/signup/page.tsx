@@ -3,32 +3,30 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { z } from "zod";
 
 import { PasswordField } from "@/components/shared/password-field";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
+import { collectFieldErrors, focusFirstInvalid, type FieldErrors } from "@/lib/forms/field-errors";
 import { messages } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/client";
 import { signUpSchema } from "@/validators/auth.validator";
 
 const fieldOrder = ["displayName", "email", "password"] as const;
 type FieldName = (typeof fieldOrder)[number];
-type FieldErrors = Partial<Record<FieldName, string>>;
 
 export default function SignupPage() {
   const router = useRouter();
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<FieldName>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
 
-  function showFieldErrors(form: HTMLFormElement, errors: FieldErrors) {
+  function showFieldErrors(form: HTMLFormElement, errors: FieldErrors<FieldName>) {
     setFieldErrors(errors);
-    const firstInvalid = fieldOrder.find((name) => errors[name]);
-    if (firstInvalid) form.querySelector<HTMLInputElement>(`[name="${firstInvalid}"]`)?.focus();
+    focusFirstInvalid(form, errors, fieldOrder);
   }
 
   function clearError(name: FieldName) {
@@ -43,12 +41,7 @@ export default function SignupPage() {
 
     const parsed = signUpSchema.safeParse(Object.fromEntries(new FormData(form)));
     if (!parsed.success) {
-      const flat = z.flattenError(parsed.error).fieldErrors;
-      showFieldErrors(form, {
-        displayName: flat.displayName?.[0],
-        email: flat.email?.[0],
-        password: flat.password?.[0],
-      });
+      showFieldErrors(form, collectFieldErrors(parsed.error, fieldOrder));
       return;
     }
     setFieldErrors({});
@@ -113,7 +106,11 @@ export default function SignupPage() {
       <div>
         <h1 className="text-h1 font-semibold tracking-[-0.02em]">Check your email</h1>
         <p className="mt-2 text-ui text-text-soft">{messages.authCheckEmailBody}</p>
-        {formError && <p className="mt-5 text-small text-danger">{formError}</p>}
+        {formError && (
+          <p role="alert" className="mt-5 text-small text-danger">
+            {formError}
+          </p>
+        )}
         <div className="mt-7 text-center">
           {resent ? (
             <p className="text-small text-text-soft">{messages.authConfirmationResent}</p>
@@ -164,7 +161,11 @@ export default function SignupPage() {
           onChange={() => clearError("password")}
         />
 
-        {formError && <p className="text-small text-danger">{formError}</p>}
+        {formError && (
+          <p role="alert" className="text-small text-danger">
+            {formError}
+          </p>
+        )}
 
         <Button type="submit" disabled={loading} className="mt-2 w-full">
           Sign up

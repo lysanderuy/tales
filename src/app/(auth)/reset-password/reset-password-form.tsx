@@ -2,13 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { z } from "zod";
 
 import { PasswordField } from "@/components/shared/password-field";
 import { Button } from "@/components/ui/button";
+import { collectFieldErrors, focusFirstInvalid } from "@/lib/forms/field-errors";
 import { messages } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/client";
 import { resetPasswordSchema } from "@/validators/auth.validator";
+
+const fieldOrder = ["password"] as const;
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -23,8 +25,9 @@ export function ResetPasswordForm() {
 
     const parsed = resetPasswordSchema.safeParse(Object.fromEntries(new FormData(form)));
     if (!parsed.success) {
-      setPasswordError(z.flattenError(parsed.error).fieldErrors.password?.[0]);
-      form.querySelector<HTMLInputElement>('[name="password"]')?.focus();
+      const errors = collectFieldErrors(parsed.error, fieldOrder);
+      setPasswordError(errors.password);
+      focusFirstInvalid(form, errors, fieldOrder);
       return;
     }
     setPasswordError(undefined);
@@ -59,7 +62,11 @@ export function ResetPasswordForm() {
           onChange={() => setPasswordError(undefined)}
         />
 
-        {formError && <p className="text-small text-danger">{formError}</p>}
+        {formError && (
+          <p role="alert" className="text-small text-danger">
+            {formError}
+          </p>
+        )}
 
         <Button type="submit" disabled={loading} className="mt-2 w-full">
           Save password

@@ -1,18 +1,13 @@
+import { cn } from "@/lib/cn";
+
 type SwatchProps = { color: string; className?: string };
 
 export function Swatch({ color, className }: SwatchProps) {
   return (
     <span
       aria-hidden="true"
-      className={className}
-      style={{
-        display: "inline-block",
-        width: 10,
-        height: 10,
-        borderRadius: 3,
-        flexShrink: 0,
-        background: color,
-      }}
+      className={cn("inline-block size-[10px] shrink-0 rounded-[3px]", className)}
+      style={{ background: color }}
     />
   );
 }

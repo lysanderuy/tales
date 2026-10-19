@@ -2,39 +2,52 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
+import { collectFieldErrors, focusFirstInvalid } from "@/lib/forms/field-errors";
 import { messages } from "@/lib/messages";
 import { createClient } from "@/lib/supabase/client";
 import { forgotPasswordSchema } from "@/validators/auth.validator";
 
+const fieldOrder = ["email"] as const;
+
 export default function ForgotPasswordPage() {
   const [emailError, setEmailError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
+    setFormError(null);
 
     const parsed = forgotPasswordSchema.safeParse(Object.fromEntries(new FormData(form)));
     if (!parsed.success) {
-      setEmailError(z.flattenError(parsed.error).fieldErrors.email?.[0]);
-      form.querySelector<HTMLInputElement>('[name="email"]')?.focus();
+      const errors = collectFieldErrors(parsed.error, fieldOrder);
+      setEmailError(errors.email);
+      focusFirstInvalid(form, errors, fieldOrder);
       return;
     }
     setEmailError(undefined);
 
     setLoading(true);
-    const supabase = createClient();
-    // The reply is the same whether or not the email has an account, so the result is ignored.
-    await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-      redirectTo: `${location.origin}/api/auth/callback?next=/reset-password`,
-    });
-    setLoading(false);
-    setSentTo(parsed.data.email);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+        redirectTo: `${location.origin}/api/auth/callback?next=/reset-password`,
+      });
+      if (error) {
+        setFormError(messages.serverError);
+        return;
+      }
+      setSentTo(parsed.data.email);
+    } catch {
+      setFormError(messages.serverError);
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (sentTo) {
@@ -66,6 +79,12 @@ export default function ForgotPasswordPage() {
           error={emailError}
           onChange={() => setEmailError(undefined)}
         />
+
+        {formError && (
+          <p role="alert" className="text-small text-danger">
+            {formError}
+          </p>
+        )}
 
         <Button type="submit" disabled={loading} className="mt-2 w-full">
           Send email

@@ -43,6 +43,8 @@ export const messages = {
   authResetIntro: "Enter your email and we'll send you a way to reset your password.",
   authResetSent: (email: string) =>
     `If ${email} has an account, a way to reset your password is on its way.`,
+  passwordShow: "Show password",
+  passwordHide: "Hide password",
   tryAgain: "Try again",
   todayTitle: "Today",
   todayEmpty: "Nothing yet today. Ready when you are.",
