@@ -31,6 +31,8 @@ export const messages = {
   subjectRequired: "Pick a Subject or Topic first.",
   noteTooLong: "Notes can be up to 5000 characters.",
   eventMarkNotAllowed: "Marks can only go on what this event covers or has planned.",
+  builtInSetReadOnly:
+    "Built-in sets and their lines can't be changed. You can hide a line instead.",
   overlapsWith: (name: string, from: string, to: string) =>
     `That overlaps with ${name}, ${from} to ${to}.`,
 } as const;

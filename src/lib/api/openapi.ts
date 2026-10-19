@@ -11,6 +11,18 @@ import {
   updateBlockSchema,
 } from "@/validators/block.validator";
 import {
+  bulkDailyLinesResponseSchema,
+  bulkDailyLinesSchema,
+  createDailyLineSchema,
+  createDailySetSchema,
+  dailyLineResponseSchema,
+  dailySetActivationSchema,
+  dailySetResponseSchema,
+  renameDailySetSchema,
+  todaysLineSchema,
+  updateDailyLineSchema,
+} from "@/validators/daily-set.validator";
+import {
   closeEventSchema,
   createEventSchema,
   eventDetailResponseSchema,
@@ -100,7 +112,17 @@ const templateIdParams = z.object({
   id: z.string().uuid().meta({ description: "Template ID." }),
 });
 
+const dailySetIdParams = z.object({
+  id: z.string().uuid().meta({ description: "Daily Set ID." }),
+});
+
+const dailyLineIdParams = z.object({
+  id: z.string().uuid().meta({ description: "Line ID." }),
+});
+
 const planTags = ["Plan"];
+
+const dailyTags = ["Daily Sets"];
 
 const eventTags = ["Events"];
 
@@ -659,11 +681,176 @@ export const openApiDocument = createDocument({
         },
       },
     },
+    "/api/daily-sets": {
+      get: {
+        tags: dailyTags,
+        summary: "List Daily Sets: Built-in first, then your own",
+        responses: {
+          "200": jsonResponse(
+            "Sets with Active state and Line counts.",
+            z.array(dailySetResponseSchema),
+          ),
+          "401": errorResponse("Unauthorized."),
+        },
+      },
+      post: {
+        tags: dailyTags,
+        summary: "Create your own Daily Set",
+        requestBody: { content: { "application/json": { schema: createDailySetSchema } } },
+        responses: {
+          "201": jsonResponse("Created.", dailySetResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
+    "/api/daily-sets/{id}": {
+      patch: {
+        tags: dailyTags,
+        summary: "Rename one of your own Daily Sets",
+        requestParams: { path: dailySetIdParams },
+        requestBody: { content: { "application/json": { schema: renameDailySetSchema } } },
+        responses: {
+          "200": jsonResponse("Renamed.", dailySetResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "403": errorResponse("Built-in Sets can't be changed."),
+          "404": errorResponse("Not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+      delete: {
+        tags: dailyTags,
+        summary: "Delete one of your own Daily Sets and its Lines",
+        requestParams: { path: dailySetIdParams },
+        responses: {
+          "200": jsonResponse("Deleted.", z.object({ deleted: z.literal(true) })),
+          "401": errorResponse("Unauthorized."),
+          "403": errorResponse("Built-in Sets can't be changed."),
+          "404": errorResponse("Not found."),
+        },
+      },
+    },
+    "/api/daily-sets/{id}/activation": {
+      put: {
+        tags: dailyTags,
+        summary: "Switch a Daily Set on or off for you. Works on Built-in Sets too.",
+        requestParams: { path: dailySetIdParams },
+        requestBody: { content: { "application/json": { schema: dailySetActivationSchema } } },
+        responses: {
+          "200": jsonResponse("Updated.", dailySetResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
+    "/api/daily-sets/{id}/lines": {
+      get: {
+        tags: dailyTags,
+        summary: "List the Lines in a Daily Set, with which ones you have hidden",
+        requestParams: { path: dailySetIdParams },
+        responses: {
+          "200": jsonResponse("Lines in order.", z.array(dailyLineResponseSchema)),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+        },
+      },
+      post: {
+        tags: dailyTags,
+        summary: "Add a Line to one of your own Daily Sets",
+        requestParams: { path: dailySetIdParams },
+        requestBody: { content: { "application/json": { schema: createDailyLineSchema } } },
+        responses: {
+          "201": jsonResponse("Added.", dailyLineResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "403": errorResponse("Built-in Sets can't be changed."),
+          "404": errorResponse("Not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
+    "/api/daily-sets/{id}/lines/bulk": {
+      post: {
+        tags: dailyTags,
+        summary:
+          "Paste many Lines at once, one per row. Empty rows and duplicates are skipped. With preview, only counts.",
+        requestParams: { path: dailySetIdParams },
+        requestBody: { content: { "application/json": { schema: bulkDailyLinesSchema } } },
+        responses: {
+          "200": jsonResponse("How many were added, or would be.", bulkDailyLinesResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "403": errorResponse("Built-in Sets can't be changed."),
+          "404": errorResponse("Not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+    },
+    "/api/daily-lines/{id}": {
+      patch: {
+        tags: dailyTags,
+        summary: "Edit a Line in one of your own Daily Sets",
+        requestParams: { path: dailyLineIdParams },
+        requestBody: { content: { "application/json": { schema: updateDailyLineSchema } } },
+        responses: {
+          "200": jsonResponse("Updated.", dailyLineResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "403": errorResponse("Built-in Sets can't be changed."),
+          "404": errorResponse("Not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+      delete: {
+        tags: dailyTags,
+        summary: "Delete a Line from one of your own Daily Sets",
+        requestParams: { path: dailyLineIdParams },
+        responses: {
+          "200": jsonResponse("Deleted.", z.object({ deleted: z.literal(true) })),
+          "401": errorResponse("Unauthorized."),
+          "403": errorResponse("Built-in Sets can't be changed."),
+          "404": errorResponse("Not found."),
+        },
+      },
+    },
+    "/api/daily-lines/{id}/hide": {
+      post: {
+        tags: dailyTags,
+        summary: "Hide a Line for you. Works on Built-in and your own Sets.",
+        requestParams: { path: dailyLineIdParams },
+        responses: {
+          "200": jsonResponse("Hidden.", dailyLineResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+        },
+      },
+    },
+    "/api/daily-lines/{id}/unhide": {
+      post: {
+        tags: dailyTags,
+        summary: "Show a hidden Line again",
+        requestParams: { path: dailyLineIdParams },
+        responses: {
+          "200": jsonResponse("Visible.", dailyLineResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+        },
+      },
+    },
+    "/api/daily-line": {
+      get: {
+        tags: dailyTags,
+        summary:
+          "Today's Line. Chosen once per day from visible Lines of Active Sets, and redrawn if it is hidden or its Set is switched off.",
+        responses: {
+          "200": jsonResponse("Today's Line, or null when none.", todaysLineSchema),
+          "401": errorResponse("Unauthorized."),
+        },
+      },
+    },
     "/api/today": {
       get: {
         tags: ["Today"],
         summary:
-          "Today's study, time by Subject, the past 7 days, days to boards and the next Upcoming Event",
+          "Today's study, time by Subject, the past 7 days, days to boards, the next Upcoming Event and today's Line",
         responses: {
           "200": jsonResponse("Today.", todayResponseSchema),
           "401": errorResponse("Unauthorized."),

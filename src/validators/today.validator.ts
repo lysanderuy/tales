@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { todaysLineSchema } from "@/validators/daily-set.validator";
+
 const idSchema = z.string().uuid();
 
 const nodeIdSchema = idSchema.meta({ description: "Subject or Topic ID." });
@@ -106,6 +108,9 @@ export const todayResponseSchema = z
       )
       .meta({ description: "Seven local days ending today, oldest first." }),
     nextEvent: nextEventSchema.nullable(),
+    dailyLine: todaysLineSchema.meta({
+      description: "The Line for today, shown quietly below days to boards. Null when none.",
+    }),
     rows: z
       .array(z.discriminatedUnion("kind", [plannedRowSchema, freeRowSchema]))
       .meta({ description: "Planned rows in plan order, then other study newest first." }),

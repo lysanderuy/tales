@@ -9,10 +9,12 @@ import { rootIdOf } from "@/lib/outline/tree";
 import { addDays, formatClock, localDateKey } from "@/lib/time/zone";
 import { assembleToday, pickNextUp, type TodayRecord } from "@/lib/today/today";
 import { blockService } from "@/services/block.service";
+import { dailyLineService } from "@/services/daily-line.service";
 import { eventService } from "@/services/event.service";
 import { outlineNodeService } from "@/services/outline-node.service";
 import { studySessionService, type DayNodeTotal } from "@/services/study-session.service";
 import type { SessionResponse } from "@/validators/study-session.validator";
+import type { TodaysLine } from "@/validators/daily-set.validator";
 import type { NextUpResponse, TodayResponse } from "@/validators/today.validator";
 
 const DEFAULT_TIME_ZONE = "Asia/Manila";
@@ -67,20 +69,32 @@ function toRecord(session: SessionResponse, timeZone: string): TodayRecord {
   };
 }
 
+async function safeDailyLine(userId: string, todayKey: string): Promise<TodaysLine> {
+  try {
+    return await dailyLineService.getTodaysLine(userId, todayKey);
+  } catch (error) {
+    console.error("[today] daily line", error);
+    return null;
+  }
+}
+
 export const todayService = {
   async getToday(userId: string): Promise<TodayResponse> {
     const clock = await loadUserClock(userId);
     const { timeZone, todayKey, now } = clock;
     const firstDay = addDays(todayKey, -6);
 
-    const [nodes, dayRows, todayBlocks, stopped, current, nextEvent] = await Promise.all([
-      outlineNodeService.list(userId, { includeArchived: true, includeTotals: false }),
-      studySessionService.totalsByDayAndNode(userId, { from: firstDay, to: todayKey }, timeZone),
-      blockService.list(userId, { date: todayKey, limit: 500 }),
-      studySessionService.list(userId, { date: todayKey, limit: 500 }),
-      studySessionService.getCurrent(userId),
-      eventService.nextUpcoming(userId, { now, timeZone, todayKey }),
-    ]);
+    const [nodes, dayRows, todayBlocks, stopped, current, nextEvent, dailyLine] = await Promise.all(
+      [
+        outlineNodeService.list(userId, { includeArchived: true, includeTotals: false }),
+        studySessionService.totalsByDayAndNode(userId, { from: firstDay, to: todayKey }, timeZone),
+        blockService.list(userId, { date: todayKey, limit: 500 }),
+        studySessionService.list(userId, { date: todayKey, limit: 500 }),
+        studySessionService.getCurrent(userId),
+        eventService.nextUpcoming(userId, { now, timeZone, todayKey }),
+        safeDailyLine(userId, todayKey),
+      ],
+    );
 
     const rootOf = new Map<string, string>();
     for (const node of nodes) {
@@ -122,6 +136,7 @@ export const todayService = {
       bySubject: subjectTotals(todayRows, rootOf),
       past7Days,
       nextEvent,
+      dailyLine,
       rows,
       serverNow: now.toISOString(),
     };
