@@ -49,7 +49,7 @@ Reusable full-stack boilerplate: Next.js 16 + Supabase + Drizzle + Zod.
    npm run db:migrate   # applies migrations + runs the RLS guardrail
    ```
 
-5. `npm run dev` — sign up at `/signup`, confirm via email, land on `/dashboard`.
+5. `npm run dev` — sign up at `/signup`, confirm via email, land on `/today`.
 
 ## Architecture
 
@@ -125,7 +125,7 @@ Tests are excluded on purpose — kept fast locally; they run in CI instead.
 src/
 ├── app/                  # Routes, layouts — frontend only
 │   ├── (auth)/           # Login, signup, forgot/reset password (route group)
-│   ├── dashboard/        # Example protected page
+│   ├── (app)/            # Signed-in app shell and Today (route group)
 │   ├── error.tsx         # Error boundary (wire Sentry etc. here)
 │   ├── global-error.tsx  # Root-layout error fallback (self-contained)
 │   ├── not-found.tsx     # 404
@@ -163,7 +163,7 @@ reference implementation of the layering — replace per project.
 ## Auth
 
 Working end-to-end: signup → email confirm (`/api/auth/callback`) → login →
-protected `/dashboard` → logout.
+protected `/today` → logout.
 
 - **Password recovery**: `/forgot-password` emails a link that lands on
   `/reset-password` (via the callback's `next` param) with a recovery session.
