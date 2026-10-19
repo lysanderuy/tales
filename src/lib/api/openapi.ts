@@ -36,6 +36,17 @@ import {
   stopSessionSchema,
   updateSessionSchema,
 } from "@/validators/study-session.validator";
+import {
+  copyDaySchema,
+  plannedAddedResponseSchema,
+  repeatDaySchema,
+} from "@/validators/plan-copy.validator";
+import {
+  applyTemplateSchema,
+  createTemplateSchema,
+  renameTemplateSchema,
+  templateResponseSchema,
+} from "@/validators/template.validator";
 import { profileResponseSchema, updateProfileSchema } from "@/validators/profile.validator";
 import { reportQuerySchema, reportResponseSchema } from "@/validators/report.validator";
 import {
@@ -83,6 +94,10 @@ const blockIdParams = z.object({
 
 const eventIdParams = z.object({
   id: z.string().uuid().meta({ description: "Event ID." }),
+});
+
+const templateIdParams = z.object({
+  id: z.string().uuid().meta({ description: "Template ID." }),
 });
 
 const planTags = ["Plan"];
@@ -556,6 +571,91 @@ export const openApiDocument = createDocument({
           "401": errorResponse("Unauthorized."),
           "404": errorResponse("Not found."),
           "422": errorResponse("A mark is on something the Event does not cover or plan."),
+        },
+      },
+    },
+    "/api/plan/copy": {
+      post: {
+        tags: planTags,
+        summary:
+          "Copy a day's planned items onto other days, after what is already there. With preview, only counts.",
+        requestBody: { content: { "application/json": { schema: copyDaySchema } } },
+        responses: {
+          "200": jsonResponse("How many were added, or would be.", plannedAddedResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "422": errorResponse("Validation error, or too many items for one request."),
+        },
+      },
+    },
+    "/api/plan/repeat": {
+      post: {
+        tags: planTags,
+        summary:
+          "Repeat a day's planned items on chosen weekdays after it, up to an end date. With preview, only counts.",
+        requestBody: { content: { "application/json": { schema: repeatDaySchema } } },
+        responses: {
+          "200": jsonResponse("How many were added, or would be.", plannedAddedResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "422": errorResponse("Validation error, range too long, or too many items."),
+        },
+      },
+    },
+    "/api/templates": {
+      get: {
+        tags: planTags,
+        summary: "List templates with their items",
+        responses: {
+          "200": jsonResponse("Templates, newest first.", z.array(templateResponseSchema)),
+          "401": errorResponse("Unauthorized."),
+        },
+      },
+      post: {
+        tags: planTags,
+        summary: "Save a day's planned items, in order, as a template",
+        requestBody: { content: { "application/json": { schema: createTemplateSchema } } },
+        responses: {
+          "201": jsonResponse("Saved.", templateResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "422": errorResponse("Validation error, or nothing planned on that day."),
+        },
+      },
+    },
+    "/api/templates/{id}": {
+      patch: {
+        tags: planTags,
+        summary: "Rename a template",
+        requestParams: { path: templateIdParams },
+        requestBody: { content: { "application/json": { schema: renameTemplateSchema } } },
+        responses: {
+          "200": jsonResponse("Renamed.", templateResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+          "422": errorResponse("Validation error."),
+        },
+      },
+      delete: {
+        tags: planTags,
+        summary: "Delete a template. Planned items already made from it are not affected.",
+        requestParams: { path: templateIdParams },
+        responses: {
+          "200": jsonResponse("Deleted.", z.object({ deleted: z.literal(true) })),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+        },
+      },
+    },
+    "/api/templates/{id}/apply": {
+      post: {
+        tags: planTags,
+        summary:
+          "Add a template's planned items to a day, after what is already there. With preview, only counts.",
+        requestParams: { path: templateIdParams },
+        requestBody: { content: { "application/json": { schema: applyTemplateSchema } } },
+        responses: {
+          "200": jsonResponse("How many were added, or would be.", plannedAddedResponseSchema),
+          "401": errorResponse("Unauthorized."),
+          "404": errorResponse("Not found."),
+          "422": errorResponse("Validation error."),
         },
       },
     },

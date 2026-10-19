@@ -17,6 +17,9 @@ export const messages = {
   nodeReorderMismatch: "That order doesn't match what is here now. Please refresh and try again.",
   plannedReorderMismatch:
     "That order doesn't match what is planned now. Please refresh and try again.",
+  copyTooMany: "That would add too many planned items at once. Try fewer days.",
+  repeatRangeTooLong: "Repeat can cover up to a year at a time.",
+  templateNothingToSave: "There are no planned items on that day to save.",
   timerAlreadyPaused: "It's already paused.",
   timerNotPaused: "It isn't paused.",
   timerNothingRunning: "Nothing is running right now.",

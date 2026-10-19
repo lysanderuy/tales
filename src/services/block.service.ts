@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, eq, gte, lte } from "drizzle-orm";
+import { asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { owned } from "@/db/owned";
@@ -21,7 +21,7 @@ import type {
 } from "@/validators/block.validator";
 import type { SessionResponse } from "@/validators/study-session.validator";
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Executor = Tx | typeof db;
 
 function toResponse(row: Block, progressSeconds: number): BlockResponse {
@@ -72,7 +72,7 @@ async function assertEventOwned(
   if (!found) throw new AppError(404, messages.notFound);
 }
 
-async function loadDay(executor: Executor, userId: string, date: string): Promise<Block[]> {
+export async function loadDay(executor: Executor, userId: string, date: string): Promise<Block[]> {
   return executor
     .select()
     .from(blocks)
@@ -103,6 +103,35 @@ async function loadOne(executor: Executor, userId: string, id: string): Promise<
     .where(owned(blocks, userId, eq(blocks.id, id)));
   if (!row) throw new AppError(404, messages.notFound);
   return (await toResponses(executor, userId, [row]))[0];
+}
+
+export interface NewBlockRow {
+  nodeId: string;
+  date: string;
+  timeOfDay: string | null;
+  plannedMinutes: number | null;
+}
+
+export async function createMany(
+  tx: Tx,
+  userId: string,
+  rows: readonly NewBlockRow[],
+): Promise<number> {
+  if (rows.length === 0) return 0;
+  const dates = [...new Set(rows.map((row) => row.date))];
+  const counts = await tx
+    .select({ date: blocks.date, count: sql<number>`count(*)::int` })
+    .from(blocks)
+    .where(owned(blocks, userId, inArray(blocks.date, dates)))
+    .groupBy(blocks.date);
+  const next = new Map(counts.map((entry) => [entry.date, entry.count]));
+  const values = rows.map((row) => {
+    const position = next.get(row.date) ?? 0;
+    next.set(row.date, position + 1);
+    return { userId, ...row, position };
+  });
+  await tx.insert(blocks).values(values);
+  return values.length;
 }
 
 export const blockService = {
