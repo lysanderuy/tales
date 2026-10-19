@@ -35,6 +35,13 @@ const noteSchema = z
 const dateKeySchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine(
+    (value) => {
+      const parsed = new Date(`${value}T00:00:00Z`);
+      return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
+    },
+    { message: messages.invalidRequest },
+  )
   .meta({ description: "Local calendar day, YYYY-MM-DD.", example: "2026-01-15" });
 
 export const startSessionSchema = z.object({
@@ -66,6 +73,10 @@ export const updateSessionSchema = z
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
     message: messages.invalidRequest,
+  })
+  .refine((value) => !(value.nodeId !== undefined && value.blockId), {
+    message: messages.invalidRequest,
+    path: ["blockId"],
   });
 
 export type UpdateSessionInput = z.infer<typeof updateSessionSchema>;

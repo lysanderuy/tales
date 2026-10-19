@@ -43,6 +43,12 @@ describe("updateSessionSchema", () => {
     expect(updateSessionSchema.safeParse({ blockId: id }).success).toBe(true);
     expect(updateSessionSchema.safeParse({ blockId: null }).success).toBe(true);
   });
+  it("rejects a node and a planned item together", () => {
+    expect(updateSessionSchema.safeParse({ nodeId: id, blockId: id }).success).toBe(false);
+  });
+  it("allows a node together with detaching the planned item", () => {
+    expect(updateSessionSchema.safeParse({ nodeId: id, blockId: null }).success).toBe(true);
+  });
   it("does not allow clearing the node", () => {
     expect(updateSessionSchema.safeParse({ nodeId: null }).success).toBe(false);
   });
@@ -96,6 +102,9 @@ describe("listSessionsQuerySchema", () => {
   it("validates the date key", () => {
     expect(listSessionsQuerySchema.safeParse({ date: "2026-01-15" }).success).toBe(true);
     expect(listSessionsQuerySchema.safeParse({ date: "2026-1-15" }).success).toBe(false);
+    expect(listSessionsQuerySchema.safeParse({ date: "2026-02-30" }).success).toBe(false);
+    expect(listSessionsQuerySchema.safeParse({ date: "2026-13-01" }).success).toBe(false);
+    expect(listSessionsQuerySchema.safeParse({ date: "2024-02-29" }).success).toBe(true);
   });
   it("does not mix date with from or to", () => {
     expect(
