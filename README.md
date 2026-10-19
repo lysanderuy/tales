@@ -40,16 +40,9 @@ Reusable full-stack boilerplate: Next.js 16 + Supabase + Drizzle + Zod.
    - **URL Configuration → Redirect URLs**: add
      `http://localhost:3000/api/auth/callback` (+ production URL later).
      Confirmation and recovery emails bounce without this.
-   - **Production**: configure the **Send Email Hook** (Dashboard →
-     Authentication → Hooks) to point at `/api/auth/email-hook`, using the
-     `SEND_EMAIL_HOOK_SECRET` from `.env.example`. Confirm/recovery emails
-     are then rendered by this app (`src/emails/confirm-signup-email.tsx`,
-     `reset-password-email.tsx`) and sent via Resend instead of Supabase's
-     dashboard-edited templates.
-   - **Local dev**: keeps using Supabase's built-in sender (unchanged) —
-     it's rate-limited (~2/hour), slow, spam-prone, and the hook isn't
-     reachable from Supabase's servers against `localhost`, so this is
-     prod-only by design.
+   - **Email**: confirm and recovery emails use Supabase's built-in sender
+     (rate-limited, ~2/hour). Turn off "Confirm email" under Providers → Email
+     to skip confirmation.
 
 4. Apply the bundled example schema — or remove it first (see
    [Removing the example](#removing-the-profiles-example)):
@@ -183,14 +176,13 @@ reference implementation of the layering — replace per project.
 
 ## Auth
 
-Working end-to-end: signup → email confirm (`/api/auth/callback`) → login →
+Working end-to-end: signup → login →
 protected `/dashboard` → logout.
 
 - **Password recovery**: `/forgot-password` emails a link that lands on
   `/reset-password` (via the callback's `next` param) with a recovery session.
-- **Email verification**: enforced by Supabase (unconfirmed users can't sign
-  in). Login and signup offer a resend button; login surfaces callback errors
-  (e.g. expired links) from `?error=`.
+- **Email verification**: optional, set in Supabase. Login surfaces callback
+  errors (e.g. expired links) from `?error=`.
 - **Route protection**: `src/proxy.ts` redirects unauthenticated hits on
   `protectedPrefixes` (extend per project); pages still check `getUser()`
   themselves — defense in depth.
@@ -199,9 +191,6 @@ protected `/dashboard` → logout.
   its own cookies) and skip the service/`ApiResponse` pattern — they're
   redirect-driven browser navigations, not JSON API calls. App data still
   always goes through `/api` with the full service/`ApiResponse` pattern.
-  `/api/auth/email-hook` is also outside the normal pattern, but as an
-  inbound webhook from Supabase (signature-verified, not
-  session-authenticated) rather than a browser navigation.
 - **Signup → profile**: a Postgres trigger (`0001_auth-trigger-and-rls.sql`)
   auto-creates a `profiles` row for each new auth user.
 
@@ -247,16 +236,8 @@ src/app/api/profile/
 src/hooks/use-profile.ts
 ```
 
-Also delete `src/emails/welcome-email.tsx` (not the whole `src/emails/`
-directory — `confirm-signup-email.tsx`/`reset-password-email.tsx` don't
-depend on `profiles`) and the `sendWelcome` method from
-`src/services/email.service.ts` (not the whole file — `sendConfirmSignup`/
-`sendResetPassword` stay, since removing `profiles` doesn't remove
-Supabase Auth).
-
 Then:
 
-- Edit `src/app/api/auth/callback/route.ts` to drop `sendWelcomeOnce` and its two service imports.
 - Remove the `/api/profile` path entry and `profileResponseSchema` from `src/lib/api/openapi.ts` — otherwise the generated spec references a deleted endpoint.
 - Only delete migrations never applied to a live database; otherwise drop the objects first (`DROP TABLE profiles; DROP FUNCTION public.handle_new_user CASCADE;`) or reset the database.
 - To bring a companion table back later, reuse the pattern in `0001_auth-trigger-and-rls.sql`: FK to `auth.users(id) ON DELETE CASCADE`, RLS enabled, `AFTER INSERT ON auth.users` trigger.
