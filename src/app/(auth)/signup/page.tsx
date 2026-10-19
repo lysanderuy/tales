@@ -58,7 +58,11 @@ export default function SignupPage() {
       },
     });
 
-    if (authError?.code === "user_already_exists") {
+    // With email confirmation on, Supabase answers a duplicate with a fake user that has no identities.
+    const alreadyRegistered =
+      authError?.code === "user_already_exists" || data.user?.identities?.length === 0;
+
+    if (alreadyRegistered) {
       setLoading(false);
       showFieldErrors(form, { email: messages.authEmailTaken });
       return;
