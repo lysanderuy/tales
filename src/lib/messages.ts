@@ -52,7 +52,6 @@ export const messages = {
   todayStartCountdown: "Start with a countdown",
   todayCustomMinutes: "Custom",
   todayCustomMinutesLabel: "Custom minutes",
-  todayCustomMinutesPlaceholder: "min",
   todayTimeBySubject: "Time by subject",
   todayTodaysStudy: "Today's study",
   todayPast7Days: "Past 7 days",
