@@ -1,7 +1,11 @@
 "use client";
 
+import { useRef, useState, type ReactNode } from "react";
+
 import { CardHeader } from "@/components/shared/card-header";
 import { PlayIcon } from "@/components/shared/icons";
+import { EditRecordDialog } from "@/components/shared/edit-record-dialog";
+import { RecordChooser, type RecordChoice } from "@/components/shared/record-chooser";
 import { Card } from "@/components/ui/card";
 import { IconButton } from "@/components/ui/icon-button";
 import { Swatch } from "@/components/ui/swatch";
@@ -41,6 +45,7 @@ type RowView = {
   progress: string;
   bar: { percent: number } | null;
   live: boolean;
+  records: RecordChoice[];
   start: { blockId: string } | { nodeId: string } | null;
 };
 
@@ -56,6 +61,12 @@ function toRowView(row: TodayRow, index: SubjectIndex): RowView {
           ? { percent: progressPercent(row.plannedMinutes, row.progressSeconds) }
           : null,
       live: row.live,
+      records: row.records
+        .filter((record) => !record.live)
+        .map((record) => ({
+          recordId: record.recordId,
+          label: `${record.startClock}–${record.endClock ?? messages.todayRunningEnd} · ${formatSeconds(record.seconds)}`,
+        })),
       start: { blockId: row.blockId },
     };
   }
@@ -70,8 +81,54 @@ function toRowView(row: TodayRow, index: SubjectIndex): RowView {
       : `${duration} · ${row.startClock}–${row.endClock ?? messages.todayRunningEnd}`,
     bar: null,
     live: row.live,
+    records: row.live ? [] : [{ recordId: row.recordId, label: duration }],
     start: row.nodeId ? { nodeId: row.nodeId } : null,
   };
+}
+
+type StudyRowMainProps = {
+  records: RecordChoice[];
+  onOpen: (recordId: string, opener: HTMLElement | null) => void;
+  children: ReactNode;
+};
+
+const mainClass = "flex min-w-0 flex-1 items-center gap-3.5";
+
+function StudyRowMain({ records, onOpen, children }: StudyRowMainProps) {
+  const [chooserOpen, setChooserOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  if (records.length === 0) return <div className={mainClass}>{children}</div>;
+
+  const [only] = records;
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-haspopup={records.length > 1 ? "true" : undefined}
+        aria-expanded={records.length > 1 ? chooserOpen : undefined}
+        onClick={() => {
+          if (records.length === 1) onOpen(only.recordId, buttonRef.current);
+          else setChooserOpen((value) => !value);
+        }}
+        className={cn(mainClass, "-mx-2 -my-1.5 rounded-row px-2 py-1.5 text-left hover:bg-fill")}
+      >
+        {children}
+      </button>
+      {chooserOpen ? (
+        <RecordChooser
+          choices={records}
+          triggerRef={buttonRef}
+          onClose={() => setChooserOpen(false)}
+          onChoose={(recordId) => {
+            setChooserOpen(false);
+            onOpen(recordId, buttonRef.current);
+          }}
+        />
+      ) : null}
+    </>
+  );
 }
 
 export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps) {
@@ -81,6 +138,7 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
   const startSession = useStartSession();
   const openFocus = useOpenFocus();
   const starting = startBlock.isPending || startSession.isPending;
+  const [editing, setEditing] = useState<{ id: string; opener: HTMLElement | null } | null>(null);
 
   const play = (start: NonNullable<RowView["start"]>) => {
     unlockAudio();
@@ -91,73 +149,89 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
   };
 
   return (
-    <Card className={className}>
-      <CardHeader title={messages.todayTodaysStudy} />
-      {views.length === 0 ? (
-        <p className="py-1 text-ui text-text-faint">{messages.todayEmpty}</p>
-      ) : (
-        <ul>
-          {views.map((view) => {
-            const color = view.subject?.color ?? "var(--border)";
-            const path = view.subject ? formatPath(view.subject.ancestors) : "";
-            return (
-              <li
-                key={view.key}
-                className="flex items-center gap-3.5 border-t border-border py-3.5 first:border-t-0 first:pt-0"
-              >
-                <Swatch color={color} />
-                <div className="min-w-0 flex-1">
-                  <div
-                    className={cn(
-                      "flex items-center gap-2",
-                      view.subject ? "font-semibold" : "font-medium text-text-faint",
-                    )}
+    <>
+      <Card className={className}>
+        <CardHeader title={messages.todayTodaysStudy} />
+        {views.length === 0 ? (
+          <p className="py-1 text-ui text-text-faint">{messages.todayEmpty}</p>
+        ) : (
+          <ul>
+            {views.map((view) => {
+              const color = view.subject?.color ?? "var(--border)";
+              const path = view.subject ? formatPath(view.subject.ancestors) : "";
+              return (
+                <li
+                  key={view.key}
+                  className="relative flex items-center gap-3.5 border-t border-border py-3.5 first:border-t-0 first:pt-0"
+                >
+                  <StudyRowMain
+                    records={view.records}
+                    onOpen={(id, opener) => setEditing({ id, opener })}
                   >
-                    <span className="truncate">
-                      {view.subject ? view.subject.name : messages.todayWhatStudying}
-                    </span>
-                    {view.live ? (
+                    <Swatch color={color} />
+                    <span className="block min-w-0 flex-1">
                       <span
-                        aria-hidden="true"
-                        className="size-[7px] shrink-0 rounded-full bg-primary"
-                      />
-                    ) : null}
-                  </div>
-                  {path ? (
-                    <div className="truncate text-caption text-text-faint">{path}</div>
-                  ) : null}
-                  {view.times ? (
-                    <div className="num truncate text-caption text-text-faint">{view.times}</div>
-                  ) : null}
-                </div>
-                <div className="num min-w-[104px] whitespace-nowrap text-right text-small text-text-soft">
-                  {view.live && display ? display.text : view.progress}
-                  {view.bar ? (
-                    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-fill">
-                      <i
-                        className="block h-full rounded-full"
-                        style={{ width: `${view.bar.percent}%`, background: color }}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-                {view.start && !session ? (
-                  <IconButton
-                    variant="tint"
-                    label={messages.todayStart}
-                    disabled={starting}
-                    onClick={() => play(view.start!)}
-                  >
-                    <PlayIcon />
-                  </IconButton>
-                ) : (
-                  <span aria-hidden="true" className="size-11 shrink-0" />
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </Card>
+                        className={cn(
+                          "flex items-center gap-2",
+                          view.subject ? "font-semibold" : "font-medium text-text-faint",
+                        )}
+                      >
+                        <span className="truncate">
+                          {view.subject ? view.subject.name : messages.todayWhatStudying}
+                        </span>
+                        {view.live ? (
+                          <span
+                            aria-hidden="true"
+                            className="size-[7px] shrink-0 rounded-full bg-primary"
+                          />
+                        ) : null}
+                      </span>
+                      {path ? (
+                        <span className="block truncate text-caption text-text-faint">{path}</span>
+                      ) : null}
+                      {view.times ? (
+                        <span className="num block truncate text-caption text-text-faint">
+                          {view.times}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="num block min-w-[104px] whitespace-nowrap text-right text-small text-text-soft">
+                      {view.live && display ? display.text : view.progress}
+                      {view.bar ? (
+                        <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-fill">
+                          <i
+                            className="block h-full rounded-full"
+                            style={{ width: `${view.bar.percent}%`, background: color }}
+                          />
+                        </span>
+                      ) : null}
+                    </span>
+                  </StudyRowMain>
+                  {view.start && !session ? (
+                    <IconButton
+                      variant="tint"
+                      label={messages.todayStart}
+                      disabled={starting}
+                      onClick={() => play(view.start!)}
+                    >
+                      <PlayIcon />
+                    </IconButton>
+                  ) : (
+                    <span aria-hidden="true" className="size-11 shrink-0" />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+      {editing ? (
+        <EditRecordDialog
+          recordId={editing.id}
+          opener={editing.opener}
+          onClose={() => setEditing(null)}
+        />
+      ) : null}
+    </>
   );
 }

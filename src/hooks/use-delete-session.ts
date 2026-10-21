@@ -7,7 +7,7 @@ import { todayKeys } from "@/hooks/use-today";
 import { api } from "@/lib/api/client";
 import { useToastStore } from "@/stores/toast.store";
 
-export function useDeleteSession() {
+export function useDeleteSession({ toastOnError = true }: { toastOnError?: boolean } = {}) {
   const queryClient = useQueryClient();
   const showError = useToastStore((state) => state.showError);
 
@@ -17,6 +17,6 @@ export function useDeleteSession() {
       void queryClient.invalidateQueries({ queryKey: currentSessionKeys.all });
       void queryClient.invalidateQueries({ queryKey: todayKeys.all });
     },
-    onError: showError,
+    onError: toastOnError ? showError : undefined,
   });
 }

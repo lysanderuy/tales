@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useDismiss } from "@/components/shared/use-dismiss";
 import { messages } from "@/lib/messages";
@@ -8,16 +8,31 @@ import { messages } from "@/lib/messages";
 type EndScreenDiscardProps = {
   disabled: boolean;
   onDiscard: () => void;
+  label?: string;
+  confirmLabel?: string;
+  keepLabel?: string;
+  onOpenChange?: (open: boolean) => void;
 };
 
 const itemClass = "flex w-full items-center rounded-row p-2.5 text-left text-ui hover:bg-fill";
 
-export function EndScreenDiscard({ disabled, onDiscard }: EndScreenDiscardProps) {
+export function EndScreenDiscard({
+  disabled,
+  onDiscard,
+  label = messages.endDiscard,
+  confirmLabel = messages.endDiscardThis,
+  keepLabel = messages.endKeep,
+  onOpenChange,
+}: EndScreenDiscardProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const onClose = useCallback(() => setOpen(false), []);
   const close = useDismiss(containerRef, triggerRef, open, onClose);
+
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
 
   return (
     <div className="relative">
@@ -30,7 +45,7 @@ export function EndScreenDiscard({ disabled, onDiscard }: EndScreenDiscardProps)
         onClick={() => setOpen((value) => !value)}
         className="press rounded-row px-3 py-2 text-ui text-text-faint hover:bg-fill disabled:opacity-50"
       >
-        {messages.endDiscard}
+        {label}
       </button>
       {open ? (
         <div
@@ -45,10 +60,10 @@ export function EndScreenDiscard({ disabled, onDiscard }: EndScreenDiscardProps)
             }}
             className={itemClass}
           >
-            {messages.endDiscardThis}
+            {confirmLabel}
           </button>
           <button type="button" onClick={close} className={itemClass}>
-            {messages.endKeep}
+            {keepLabel}
           </button>
         </div>
       ) : null}

@@ -27,19 +27,26 @@ export function editsFromRecord(
   };
 }
 
+export function subjectUpdate(
+  record: Pick<SessionResponse, "nodeId" | "blockId">,
+  edits: Pick<EndScreenEdits, "nodeId" | "blockId">,
+): Pick<EndScreenUpdate, "nodeId" | "blockId"> {
+  const subjectChanged = edits.nodeId !== record.nodeId || edits.blockId !== record.blockId;
+  if (!subjectChanged || edits.nodeId === null) return {};
+  return edits.blockId ? { blockId: edits.blockId } : { nodeId: edits.nodeId };
+}
+
+export function normalizeNote(note: string): string | null {
+  return note.trim() === "" ? null : note;
+}
+
 export function buildEndScreenUpdate(
   record: Pick<SessionResponse, "nodeId" | "blockId">,
   edits: EndScreenEdits,
 ): EndScreenUpdate {
-  const subjectChanged = edits.nodeId !== record.nodeId || edits.blockId !== record.blockId;
-  const subject: Pick<EndScreenUpdate, "nodeId" | "blockId"> = {};
-  if (subjectChanged && edits.nodeId !== null) {
-    if (edits.blockId) subject.blockId = edits.blockId;
-    else subject.nodeId = edits.nodeId;
-  }
   return {
-    ...subject,
+    ...subjectUpdate(record, edits),
     methodTag: edits.methodTag,
-    note: edits.note.trim() === "" ? null : edits.note,
+    note: normalizeNote(edits.note),
   };
 }

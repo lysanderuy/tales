@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { EndScreenDiscard } from "@/components/shared/end-screen-discard";
+import { EndScreenMethods } from "@/components/shared/end-screen-methods";
 import { EndScreenNextUp } from "@/components/shared/end-screen-next-up";
 import { EndScreenSubject } from "@/components/shared/end-screen-subject";
-import { METHODS } from "@/components/shared/focus-tools";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { useEndRecord } from "@/hooks/use-current-session";
@@ -14,7 +14,6 @@ import { useOpenFocus } from "@/hooks/use-open-focus";
 import { useStartBlock } from "@/hooks/use-start-block";
 import { useSubjects } from "@/hooks/use-subjects";
 import { useUpdateSession } from "@/hooks/use-update-session";
-import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
 import { buildEndScreenUpdate, editsFromRecord, type EndScreenEdits } from "@/lib/timer/end-screen";
 import { formatSeconds, splitTotal } from "@/lib/today/format";
@@ -147,24 +146,11 @@ function EndScreenDialog({ record }: { record: SessionResponse }) {
         </Section>
 
         <Section label={messages.endMethod}>
-          <div className="flex flex-wrap justify-center gap-2">
-            {METHODS.map(({ tag, label }) => (
-              <button
-                key={tag}
-                type="button"
-                aria-pressed={edits.methodTag === tag}
-                onClick={() => patch({ methodTag: edits.methodTag === tag ? null : tag })}
-                className={cn(
-                  "press rounded-full px-[11px] py-[7px] text-ui",
-                  edits.methodTag === tag
-                    ? "bg-primary-soft font-medium text-primary"
-                    : "bg-fill hover:bg-fill-hover",
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <EndScreenMethods
+            value={edits.methodTag}
+            onChange={(methodTag) => patch({ methodTag })}
+            className="justify-center"
+          />
         </Section>
 
         <Section label={messages.endNote}>

@@ -183,3 +183,11 @@ export function PlusIcon({ size = 20 }: IconProps) {
     </StrokeIcon>
   );
 }
+
+export function CloseIcon({ size = 18 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </StrokeIcon>
+  );
+}

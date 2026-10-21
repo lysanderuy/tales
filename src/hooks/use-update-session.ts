@@ -10,7 +10,7 @@ import type { SessionResponse, updateSessionSchema } from "@/validators/study-se
 
 export type UpdateSessionVariables = { id: string } & z.input<typeof updateSessionSchema>;
 
-export function useUpdateSession() {
+export function useUpdateSession({ toastOnError = true }: { toastOnError?: boolean } = {}) {
   const queryClient = useQueryClient();
   const showError = useToastStore((state) => state.showError);
 
@@ -18,6 +18,6 @@ export function useUpdateSession() {
     mutationFn: ({ id, ...body }: UpdateSessionVariables) =>
       api.patch<SessionResponse>(`/api/sessions/${id}`, body),
     onSuccess: (session) => applySessionResult(queryClient, session),
-    onError: showError,
+    onError: toastOnError ? showError : undefined,
   });
 }
