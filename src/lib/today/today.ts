@@ -15,9 +15,12 @@ export interface TodayRecord {
   live: boolean;
 }
 
-export interface TodayTime {
+export interface TodayPlannedRecord {
+  recordId: string;
   startClock: string;
   endClock: string | null;
+  seconds: number;
+  live: boolean;
 }
 
 export interface PlannedRow {
@@ -26,7 +29,7 @@ export interface PlannedRow {
   nodeId: string;
   plannedMinutes: number | null;
   progressSeconds: number;
-  times: TodayTime[];
+  records: TodayPlannedRecord[];
   live: boolean;
 }
 
@@ -68,7 +71,13 @@ export function assembleToday(input: {
       nodeId: block.nodeId,
       plannedMinutes: block.plannedMinutes,
       progressSeconds: input.progressByBlockId.get(block.id) ?? 0,
-      times: mine.map((record) => ({ startClock: record.startClock, endClock: record.endClock })),
+      records: mine.map((record) => ({
+        recordId: record.id,
+        startClock: record.startClock,
+        endClock: record.endClock,
+        seconds: record.seconds,
+        live: record.live,
+      })),
       live: mine.some((record) => record.live),
     };
   });

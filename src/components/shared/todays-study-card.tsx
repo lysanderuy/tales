@@ -49,7 +49,7 @@ function toRowView(row: TodayRow, index: SubjectIndex): RowView {
     return {
       key: row.blockId,
       subject: resolveSubject(index, row.nodeId, messages.todayUnknownSubject),
-      times: formatTimeRanges(row.times, messages.todayRunningEnd),
+      times: formatTimeRanges(row.records, messages.todayRunningEnd),
       progress: formatProgress(row.plannedMinutes, row.progressSeconds),
       bar:
         row.plannedMinutes && row.plannedMinutes > 0

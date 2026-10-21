@@ -470,6 +470,16 @@ const paths: ZodOpenApiPathsObject = {
     },
   },
   "/api/sessions/{id}": {
+    get: {
+      tags: sessionTags,
+      summary: "Get one record",
+      requestParams: { path: sessionIdParams },
+      responses: {
+        "200": jsonResponse("The record.", sessionResponseSchema),
+        "401": errorResponse("Unauthorized."),
+        "404": errorResponse("Not found."),
+      },
+    },
     patch: {
       tags: sessionTags,
       summary:

@@ -69,11 +69,29 @@ describe("assembleToday", () => {
       kind: "planned",
       progressSeconds: 3000,
       plannedMinutes: 45,
-      times: [
-        { startClock: "09:00", endClock: "09:30" },
-        { startClock: "14:00", endClock: "14:30" },
+      records: [
+        { recordId: "r1", startClock: "09:00", endClock: "09:30", seconds: 1800, live: false },
+        { recordId: "r2", startClock: "14:00", endClock: "14:30", seconds: 1800, live: false },
       ],
       live: false,
+    });
+  });
+
+  it("flags live per record, not only on the row", () => {
+    const rows = assembleToday({
+      blocks: [block("b1")],
+      progressByBlockId: new Map(),
+      records: [
+        record("r1", 9, { blockId: "b1" }),
+        record("r2", 14, { blockId: "b1", live: true, endClock: null, seconds: 120 }),
+      ],
+    });
+    expect(rows[0]).toMatchObject({
+      live: true,
+      records: [
+        { recordId: "r1", live: false },
+        { recordId: "r2", live: true, seconds: 120 },
+      ],
     });
   });
 
@@ -83,7 +101,10 @@ describe("assembleToday", () => {
       progressByBlockId: new Map(),
       records: [record("r1", 9, { blockId: "b1", live: true, endClock: null })],
     });
-    expect(rows[0]).toMatchObject({ live: true, times: [{ startClock: "09:00", endClock: null }] });
+    expect(rows[0]).toMatchObject({
+      live: true,
+      records: [{ startClock: "09:00", endClock: null }],
+    });
   });
 
   it("shows a record on a block from another day as a free row only", () => {
@@ -93,7 +114,7 @@ describe("assembleToday", () => {
       records: [record("r1", 9, { blockId: "yesterday" })],
     });
     expect(rows.map((row) => row.kind)).toEqual(["planned", "free"]);
-    expect(rows[0]).toMatchObject({ times: [], progressSeconds: 0 });
+    expect(rows[0]).toMatchObject({ records: [], progressSeconds: 0 });
   });
 
   it("allows a live free start with no Subject", () => {

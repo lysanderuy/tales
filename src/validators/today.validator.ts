@@ -45,9 +45,17 @@ const plannedRowSchema = z
     progressSeconds: z.number().meta({
       description: "Time studied on this planned item, not counting pauses.",
     }),
-    times: z
-      .array(z.object({ startClock: clockSchema, endClock: clockSchema.nullable() }))
-      .meta({ description: "Start and end of each record today. End is null while running." }),
+    records: z
+      .array(
+        z.object({
+          recordId: idSchema.meta({ description: "Study record ID." }),
+          startClock: clockSchema,
+          endClock: clockSchema.nullable().meta({ description: "Null while running." }),
+          seconds: z.number().meta({ description: "Time studied, not counting pauses." }),
+          live: z.boolean().meta({ description: "True while this record's timer is running." }),
+        }),
+      )
+      .meta({ description: "Each record on this row today, earliest first." }),
     live: z.boolean().meta({ description: "True while a timer on this row is running." }),
   })
   .meta({ id: "TodayPlannedRow" });

@@ -449,6 +449,10 @@ export const studySessionService = {
     });
   },
 
+  async getById(userId: string, id: string): Promise<SessionResponse> {
+    return loadResponse(db, userId, id, new Date());
+  },
+
   async update(userId: string, id: string, patch: UpdateSessionInput): Promise<SessionResponse> {
     const now = new Date();
     return db.transaction(async (tx) => {
