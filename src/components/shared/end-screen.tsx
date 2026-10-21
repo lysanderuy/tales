@@ -121,7 +121,7 @@ function EndScreenDialog({ record }: { record: SessionResponse }) {
     >
       <div className="m-auto w-full max-w-[var(--endscreen-w)]">
         <h1 className="text-h1 font-semibold tracking-[-0.02em]">{messages.endTitle}</h1>
-        <div className="num mb-1 mt-2 text-end font-normal leading-none tracking-[-0.03em] text-time">
+        <div className="num mb-1 mt-2 text-duration font-normal leading-none tracking-[-0.03em] text-time">
           {hours > 0 ? (
             <>
               {hours}

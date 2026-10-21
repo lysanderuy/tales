@@ -45,7 +45,7 @@
   --text-logo: var(--fs-logo);
   --text-h1: var(--fs-h1);
   --text-total: var(--fs-total);
-  --text-end: var(--fs-end);
+  --text-duration: var(--fs-end);
   --text-hero: var(--fs-hero);
   --text-timer: var(--fs-timer);
 }
