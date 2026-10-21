@@ -5,17 +5,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { buttonClass } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { useCurrentSession, useStaleSession } from "@/hooks/use-current-session";
+import { useProfile } from "@/hooks/use-profile";
 import { useHeartbeatSession } from "@/hooks/use-heartbeat-session";
 import { useStopSession } from "@/hooks/use-stop-session";
 import { useSubjects } from "@/hooks/use-subjects";
 import { messages } from "@/lib/messages";
+import { formatClock } from "@/lib/time/zone";
 import { clockOffset } from "@/lib/timer/clock";
-import {
-  localTimeValue,
-  staleClockLabel,
-  staleDayLabel,
-  staleStopInstant,
-} from "@/lib/timer/stale-stop";
+import { staleClockLabel, staleDayLabel, staleStopInstant } from "@/lib/timer/stale-stop";
 import { buildSubjectIndex } from "@/lib/today/subject-index";
 import { useToastStore } from "@/stores/toast.store";
 import { useUiStore } from "@/stores/ui.store";
@@ -30,7 +27,7 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
   const heartbeat = useHeartbeatSession();
   const stop = useStopSession();
   const [step, setStep] = useState<Step>("choose");
-  const [time, setTime] = useState(() => localTimeValue(new Date(session.lastHeartbeatAt)));
+  const [editedTime, setEditedTime] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const stillRef = useRef<HTMLButtonElement>(null);
@@ -42,7 +39,9 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
   const [openedAt] = useState(() => new Date());
   const heartbeatAt = new Date(session.lastHeartbeatAt);
   const subjectName = session.nodeId ? (index.get(session.nodeId)?.name ?? null) : null;
-  const heartbeatDay = staleDayLabel(heartbeatAt, openedAt);
+  const timeZone = useProfile().data?.timeZone ?? null;
+  const time = editedTime ?? (timeZone ? formatClock(heartbeatAt, timeZone) : "");
+  const heartbeatDay = timeZone ? staleDayLabel(heartbeatAt, openedAt, timeZone) : null;
   const busy = heartbeat.isPending || stop.isPending;
 
   useEffect(() => {
@@ -94,12 +93,14 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
     });
 
   const onSave = () => {
+    if (!timeZone) return;
     const serverNow = data ? Date.now() + clockOffset(data.serverNow, dataUpdatedAt) : Date.now();
     const endedAt = staleStopInstant(
       time,
       new Date(session.lastHeartbeatAt),
       new Date(session.startedAt),
       new Date(serverNow),
+      timeZone,
     );
     if (!endedAt) {
       setError(messages.stopTimeOutOfRange);
@@ -127,15 +128,17 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
         </h2>
         <p className="mt-2 text-small text-text-soft">
           {subjectName ? <span className="block">{subjectName}</span> : null}
-          <span className="num block">
-            {messages.staleTimes(
-              staleClockLabel(new Date(session.startedAt), openedAt),
-              staleClockLabel(heartbeatAt, openedAt),
-            )}
-          </span>
+          {timeZone ? (
+            <span className="num block">
+              {messages.staleTimes(
+                staleClockLabel(new Date(session.startedAt), openedAt, timeZone),
+                staleClockLabel(heartbeatAt, openedAt, timeZone),
+              )}
+            </span>
+          ) : null}
         </p>
 
-        {step === "choose" ? (
+        {step === "choose" || !timeZone ? (
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <button
               ref={stillRef}
@@ -149,7 +152,7 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
             <button
               ref={stopRef}
               type="button"
-              disabled={busy}
+              disabled={busy || !timeZone}
               onClick={() => {
                 cameBack.current = false;
                 setStep("time");
@@ -169,7 +172,7 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
                 value={time}
                 disabled={busy}
                 onChange={(event) => {
-                  setTime(event.target.value);
+                  setEditedTime(event.target.value);
                   setError(null);
                 }}
                 className="num"
