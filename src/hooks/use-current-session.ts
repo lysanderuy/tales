@@ -26,6 +26,15 @@ export function useEndRecord(): SessionResponse | null {
   return data?.session?.state === "stopped" ? data.session : justStopped;
 }
 
+export function useStaleSession(): SessionResponse | null {
+  const { data } = useCurrentSession();
+  const handledId = useUiStore((state) => state.staleHandledId);
+  const session = data?.session;
+  return session && session.state === "running" && session.stale && session.id !== handledId
+    ? session
+    : null;
+}
+
 // Mutation responses carry no server clock, so reuse the offset of the data already cached.
 export function writeCurrentSession(queryClient: QueryClient, session: SessionResponse): void {
   const state = queryClient.getQueryState<CurrentSessionResponse>(currentSessionKeys.all);
