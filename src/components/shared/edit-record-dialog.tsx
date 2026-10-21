@@ -40,8 +40,8 @@ export function EditRecordDialog({ recordId, opener, onClose }: EditRecordDialog
     };
   }, [opener]);
 
-  // Registered before the Picker and the delete popover add their own Esc handlers, so
-  // overlayOpenRef still says whether one of them is about to consume this key.
+  // Capture phase runs before the Picker and delete popover handlers, so overlayOpenRef still
+  // says whether one of them is about to consume Esc.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const dialog = dialogRef.current;
@@ -68,8 +68,8 @@ export function EditRecordDialog({ recordId, opener, onClose }: EditRecordDialog
         first.focus();
       }
     }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => document.removeEventListener("keydown", onKeyDown, { capture: true });
   }, []);
 
   const failed = record.isError || profile.isError;
