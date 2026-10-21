@@ -41,9 +41,7 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
   const index = useMemo(() => buildSubjectIndex(subjects.data ?? []), [subjects.data]);
   const [openedAt] = useState(() => new Date());
   const heartbeatAt = new Date(session.lastHeartbeatAt);
-  const subjectName = session.nodeId
-    ? (index.get(session.nodeId)?.name ?? null)
-    : messages.todayWhatStudying;
+  const subjectName = session.nodeId ? (index.get(session.nodeId)?.name ?? null) : null;
   const heartbeatDay = staleDayLabel(heartbeatAt, openedAt);
   const busy = heartbeat.isPending || stop.isPending;
 
