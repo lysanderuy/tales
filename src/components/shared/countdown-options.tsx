@@ -5,7 +5,7 @@ import { messages } from "@/lib/messages";
 const COUNTDOWN_MINUTES = [25, 45, 60] as const;
 
 const inputClass =
-  "w-full rounded-row bg-transparent p-2.5 text-left text-ui text-text placeholder:text-text hover:bg-fill focus:bg-fill focus:placeholder:text-text-faint";
+  "w-full rounded-row bg-transparent p-2.5 text-left text-ui text-text outline-none placeholder:text-text hover:bg-fill focus:bg-fill focus:placeholder:text-text-faint";
 
 type CountdownOptionsProps = {
   disabled?: boolean;
