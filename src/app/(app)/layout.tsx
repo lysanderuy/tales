@@ -1,4 +1,5 @@
 import { AppContent } from "@/components/shared/app-content";
+import { EndScreen } from "@/components/shared/end-screen";
 import { FocusMode } from "@/components/shared/focus-mode";
 import { TimerEffects } from "@/components/shared/timer-effects";
 import { Toast } from "@/components/shared/toast";
@@ -13,6 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </AppContent>
       <TimerEffects />
       <FocusMode />
+      <EndScreen />
       <Toast />
     </>
   );

@@ -12,7 +12,7 @@ import type { SessionResponse } from "@/validators/study-session.validator";
 
 type MethodTag = NonNullable<SessionResponse["methodTag"]>;
 
-const METHODS: readonly { tag: MethodTag; label: string }[] = [
+export const METHODS: readonly { tag: MethodTag; label: string }[] = [
   { tag: "lecture_notes", label: messages.methodLectureNotes },
   { tag: "personal_notes", label: messages.methodPersonalNotes },
   { tag: "flashcards", label: messages.methodFlashcards },

@@ -4,6 +4,7 @@ import { useQuery, type QueryClient } from "@tanstack/react-query";
 
 import { todayKeys } from "@/hooks/use-today";
 import { api } from "@/lib/api/client";
+import { useUiStore } from "@/stores/ui.store";
 import type { CurrentSessionResponse, SessionResponse } from "@/validators/study-session.validator";
 
 export const currentSessionKeys = {
@@ -17,6 +18,12 @@ export function useCurrentSession() {
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
+}
+
+export function useEndRecord(): SessionResponse | null {
+  const { data } = useCurrentSession();
+  const justStopped = useUiStore((state) => state.justStopped);
+  return data?.session?.state === "stopped" ? data.session : justStopped;
 }
 
 // Mutation responses carry no server clock, so reuse the offset of the data already cached.
