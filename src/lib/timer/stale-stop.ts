@@ -1,3 +1,4 @@
+import { formatDayLabel } from "@/lib/today/format";
 import { clampStopTime } from "@/lib/timer/timer";
 
 function pad(value: number): string {
@@ -25,4 +26,19 @@ export function staleStopInstant(
   const candidate = new Date(lastHeartbeatAt);
   candidate.setHours(hours, minutes, 0, 0);
   return clampStopTime(candidate, startedAt, now);
+}
+
+function localDateKey(instant: Date): string {
+  return `${instant.getFullYear()}-${pad(instant.getMonth() + 1)}-${pad(instant.getDate())}`;
+}
+
+export function staleDayLabel(instant: Date, now: Date): string | null {
+  const key = localDateKey(instant);
+  return key === localDateKey(now) ? null : formatDayLabel(key);
+}
+
+export function staleClockLabel(instant: Date, now: Date): string {
+  const day = staleDayLabel(instant, now);
+  const time = localTimeValue(instant);
+  return day ? `${day} ${time}` : time;
 }

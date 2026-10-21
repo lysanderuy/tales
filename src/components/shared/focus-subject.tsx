@@ -41,7 +41,9 @@ export function FocusSubject({ session, subject, open, onOpenChange, onPick }: F
               : "font-medium text-text-faint decoration-text-faint/55 group-hover:decoration-text-faint",
           )}
         >
-          {hasSubject ? (subject?.name ?? "�") : messages.todayWhatStudying}
+          {hasSubject
+            ? (subject?.name ?? messages.todayUnknownSubject)
+            : messages.todayWhatStudying}
         </span>
         {subject && subject.ancestors.length > 0 ? (
           <span className="mt-0.5 block text-caption text-text-faint">

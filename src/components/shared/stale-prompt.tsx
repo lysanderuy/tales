@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { buttonClass } from "@/components/ui/button";
-import { Eyebrow } from "@/components/ui/eyebrow";
+import { TextField } from "@/components/ui/text-field";
 import { useCurrentSession, useStaleSession } from "@/hooks/use-current-session";
 import { useHeartbeatSession } from "@/hooks/use-heartbeat-session";
 import { useStopSession } from "@/hooks/use-stop-session";
+import { useSubjects } from "@/hooks/use-subjects";
 import { messages } from "@/lib/messages";
 import { clockOffset } from "@/lib/timer/clock";
-import { localTimeValue, staleStopInstant } from "@/lib/timer/stale-stop";
+import {
+  localTimeValue,
+  staleClockLabel,
+  staleDayLabel,
+  staleStopInstant,
+} from "@/lib/timer/stale-stop";
+import { buildSubjectIndex } from "@/lib/today/subject-index";
 import { useToastStore } from "@/stores/toast.store";
 import { useUiStore } from "@/stores/ui.store";
 import type { SessionResponse } from "@/validators/study-session.validator";
@@ -30,11 +37,19 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
   const stopRef = useRef<HTMLButtonElement>(null);
   const timeRef = useRef<HTMLInputElement>(null);
   const cameBack = useRef(false);
+  const subjects = useSubjects();
+  const index = useMemo(() => buildSubjectIndex(subjects.data ?? []), [subjects.data]);
+  const [openedAt] = useState(() => new Date());
+  const heartbeatAt = new Date(session.lastHeartbeatAt);
+  const subjectName = session.nodeId
+    ? (index.get(session.nodeId)?.name ?? null)
+    : messages.todayWhatStudying;
+  const heartbeatDay = staleDayLabel(heartbeatAt, openedAt);
   const busy = heartbeat.isPending || stop.isPending;
 
   useEffect(() => {
     const opener = document.activeElement;
-    stillRef.current?.focus();
+    dialogRef.current?.focus();
     return () => {
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
     };
@@ -62,7 +77,7 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
       const last = items[items.length - 1];
       if (!first || !last) return;
       const active = document.activeElement;
-      if (!dialog.contains(active) || (event.shiftKey && active === first)) {
+      if (!dialog.contains(active) || (event.shiftKey && (active === first || active === dialog))) {
         event.preventDefault();
         (event.shiftKey ? last : first).focus();
       } else if (!event.shiftKey && active === last) {
@@ -106,11 +121,21 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="stale-prompt-title"
-        className="max-h-[92vh] w-full max-w-[var(--dialog-w)] overflow-auto rounded-card border border-border bg-surface p-6"
+        tabIndex={-1}
+        className="max-h-[92vh] w-full max-w-[var(--dialog-w)] overflow-auto rounded-card border border-border bg-surface p-6 outline-none"
       >
         <h2 id="stale-prompt-title" className="text-h2 font-semibold tracking-[-0.01em]">
           {messages.staleTitle}
         </h2>
+        <p className="mt-2 text-small text-text-soft">
+          {subjectName ? <span className="block">{subjectName}</span> : null}
+          <span className="num block">
+            {messages.staleTimes(
+              staleClockLabel(new Date(session.startedAt), openedAt),
+              staleClockLabel(heartbeatAt, openedAt),
+            )}
+          </span>
+        </p>
 
         {step === "choose" ? (
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -138,10 +163,10 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
           </div>
         ) : (
           <>
-            <label className="mt-6 block">
-              <Eyebrow as="span">{messages.staleStopAt}</Eyebrow>
-              <input
+            <div className="mt-6">
+              <TextField
                 ref={timeRef}
+                label={messages.staleStopAt}
                 type="time"
                 value={time}
                 disabled={busy}
@@ -149,9 +174,12 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
                   setTime(event.target.value);
                   setError(null);
                 }}
-                className="num mt-1.5 block w-full rounded-field bg-fill px-3 py-2.5 text-body text-text"
+                className="num"
               />
-            </label>
+              {heartbeatDay ? (
+                <p className="num mt-2 text-small text-text-soft">{heartbeatDay}</p>
+              ) : null}
+            </div>
             <p role="alert" className="mt-2 min-h-5 text-ui text-danger">
               {error}
             </p>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { localTimeValue, staleStopInstant } from "./stale-stop";
+import { localTimeValue, staleClockLabel, staleDayLabel, staleStopInstant } from "./stale-stop";
 
 const startedAt = new Date(2026, 5, 10, 9, 0, 0, 0);
 const heartbeat = new Date(2026, 5, 10, 13, 20, 45, 123);
@@ -46,5 +46,26 @@ describe("staleStopInstant", () => {
   it("round-trips with localTimeValue", () => {
     expect(localTimeValue(heartbeat)).toBe("13:20");
     expect(localTimeValue(new Date(2026, 5, 10, 7, 5))).toBe("07:05");
+  });
+});
+
+describe("staleDayLabel and staleClockLabel", () => {
+  it("shows only the time on the same local day", () => {
+    expect(staleDayLabel(heartbeat, now)).toBeNull();
+    expect(staleClockLabel(startedAt, now)).toBe("09:00");
+  });
+
+  it("prefixes a short day label on a previous day", () => {
+    const earlier = new Date(2026, 5, 9, 21, 40);
+    expect(staleDayLabel(earlier, now)).toBe("Tue 9");
+    expect(staleClockLabel(earlier, now)).toBe("Tue 9 21:40");
+  });
+
+  it("splits at local midnight", () => {
+    const justBefore = new Date(2026, 5, 9, 23, 59);
+    const justAfter = new Date(2026, 5, 10, 0, 1);
+    const morning = new Date(2026, 5, 10, 0, 5);
+    expect(staleClockLabel(justBefore, morning)).toBe("Tue 9 23:59");
+    expect(staleClockLabel(justAfter, morning)).toBe("00:01");
   });
 });
