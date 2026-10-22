@@ -191,3 +191,29 @@ export function CloseIcon({ size = 18 }: IconProps) {
     </StrokeIcon>
   );
 }
+
+export function ArchiveIcon({ size = 15 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <path d="M4 6.5h16V10H4zM5.5 10v8a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-8M10 14h4" />
+    </StrokeIcon>
+  );
+}
+
+export function MoreIcon({ size = 18 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <circle cx="5.5" cy="12" r="1.3" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" />
+      <circle cx="18.5" cy="12" r="1.3" fill="currentColor" />
+    </StrokeIcon>
+  );
+}
+
+export function ImportIcon({ size = 20 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19h14" />
+    </StrokeIcon>
+  );
+}
