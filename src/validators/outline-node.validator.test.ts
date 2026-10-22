@@ -21,8 +21,8 @@ describe("createOutlineNodeSchema", () => {
 
   it("rejects empty and over-long names", () => {
     expect(createOutlineNodeSchema.safeParse({ name: "   " }).success).toBe(false);
-    expect(createOutlineNodeSchema.safeParse({ name: "a".repeat(80) }).success).toBe(true);
-    expect(createOutlineNodeSchema.safeParse({ name: "a".repeat(81) }).success).toBe(false);
+    expect(createOutlineNodeSchema.safeParse({ name: "a".repeat(200) }).success).toBe(true);
+    expect(createOutlineNodeSchema.safeParse({ name: "a".repeat(201) }).success).toBe(false);
   });
 
   it("rejects > with its own message", () => {

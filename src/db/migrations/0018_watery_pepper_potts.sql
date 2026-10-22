@@ -1,0 +1,2 @@
+ALTER TABLE "outline_nodes" DROP CONSTRAINT "outline_nodes_name_check";--> statement-breakpoint
+ALTER TABLE "outline_nodes" ADD CONSTRAINT "outline_nodes_name_check" CHECK (char_length("outline_nodes"."name") between 1 and 200 and position('>' in "outline_nodes"."name") = 0);

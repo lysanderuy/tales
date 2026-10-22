@@ -11,7 +11,7 @@ export const messages = {
   invalidValue: "One of the values isn't allowed.",
   nodeNameTaken: "That name is already used here.",
   nodeNameInvalidChar: "Names can't include the > character.",
-  nodeNameLength: "Names need 1 to 80 characters.",
+  nodeNameLength: "Names need 1 to 200 characters.",
   examWeightInvalid: "Exam weight is a number from 0 to 100 with at most one decimal.",
   nodeHasRecords: "This has study time or plans attached. Archive it instead.",
   nodeMoveIntoSelf: "It can't be moved under itself or anything inside it.",

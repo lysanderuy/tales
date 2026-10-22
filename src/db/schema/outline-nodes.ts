@@ -48,7 +48,7 @@ export const outlineNodes = pgTable(
     index("outline_nodes_user_parent_position_idx").on(t.userId, t.parentId, t.position),
     check(
       "outline_nodes_name_check",
-      sql`char_length(${t.name}) between 1 and 80 and position('>' in ${t.name}) = 0`,
+      sql`char_length(${t.name}) between 1 and 200 and position('>' in ${t.name}) = 0`,
     ),
     check(
       "outline_nodes_exam_weight_check",

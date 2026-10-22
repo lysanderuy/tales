@@ -2,13 +2,18 @@ import { z } from "zod";
 
 import { messages } from "@/lib/messages";
 
+export const NODE_NAME_MAX_LENGTH = 200;
+
 const nameSchema = z
   .string()
   .trim()
   .min(1, messages.nodeNameLength)
-  .max(80, messages.nodeNameLength)
+  .max(NODE_NAME_MAX_LENGTH, messages.nodeNameLength)
   .refine((value) => !value.includes(">"), messages.nodeNameInvalidChar)
-  .meta({ description: "Name, 1 to 80 characters, no > character.", example: "Hematology" });
+  .meta({
+    description: `Name, 1 to ${NODE_NAME_MAX_LENGTH} characters, no > character.`,
+    example: "Hematology",
+  });
 
 const examWeightSchema = z
   .number()
