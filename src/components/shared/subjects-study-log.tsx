@@ -52,7 +52,7 @@ export function SubjectsStudyLog({ records, index, timeZone }: SubjectsStudyLogP
           return (
             <li
               key={record.id}
-              className="flex items-center gap-3.5 border-t border-border py-3 first:border-t-0 first:pt-0"
+              className="flex min-w-0 items-center gap-3.5 border-t border-border py-3 first:border-t-0 first:pt-0"
             >
               <div
                 role="button"
@@ -64,7 +64,7 @@ export function SubjectsStudyLog({ records, index, timeZone }: SubjectsStudyLogP
                     setEditing({ id: record.id, opener: event.currentTarget });
                   }
                 }}
-                className="-mx-2.5 flex flex-1 cursor-pointer items-center gap-3.5 rounded-row px-2.5 py-1 hover:bg-fill"
+                className="-mx-2.5 flex min-w-0 flex-1 cursor-pointer items-center gap-3.5 rounded-row px-2.5 py-1 hover:bg-fill"
               >
                 <div className="min-w-0 flex-1">
                   <div title={name} className="truncate text-ui font-semibold">
