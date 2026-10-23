@@ -16,11 +16,14 @@ const nodeIdSchema = idSchema.meta({ description: "Subject or Topic ID." });
 
 const blockIdSchema = idSchema.meta({ description: "Planned item ID." });
 
+export const MIN_PLANNED_MINUTES = 1;
+export const MAX_PLANNED_MINUTES = 600;
+
 const plannedMinutesSchema = z
   .number()
   .int()
-  .min(1)
-  .max(600)
+  .min(MIN_PLANNED_MINUTES)
+  .max(MAX_PLANNED_MINUTES)
   .meta({ description: "Countdown length in minutes, 1 to 600.", example: 45 });
 
 const methodTagSchema = z
