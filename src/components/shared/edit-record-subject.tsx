@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Picker } from "@/components/shared/picker";
-import { Swatch } from "@/components/ui/swatch";
+import { SubjectTrigger } from "@/components/shared/subject-trigger";
 import { messages } from "@/lib/messages";
 import { formatPath, type SubjectInfo } from "@/lib/today/subject-index";
 
@@ -33,24 +33,14 @@ export function EditRecordSubject({
 
   return (
     <>
-      <button
-        ref={setButton}
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-        className="flex min-h-[52px] w-full items-center gap-2.5 rounded-field bg-fill px-3.5 py-3 text-left hover:bg-fill-hover"
-      >
-        <Swatch color={subject?.color ?? "var(--border)"} />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-body font-semibold">
-            {nodeId ? (subject?.name ?? messages.todayUnknownSubject) : messages.todayWhatStudying}
-          </span>
-          {path ? (
-            <span className="block truncate text-caption text-text-faint">{path}</span>
-          ) : null}
-        </span>
-      </button>
+      <SubjectTrigger
+        triggerRef={setButton}
+        open={open}
+        onToggle={() => setOpen((value) => !value)}
+        name={nodeId ? (subject?.name ?? messages.todayUnknownSubject) : null}
+        path={path}
+        placeholder={messages.todayWhatStudied}
+      />
       {open ? (
         <Picker anchor={button} selected={{ nodeId, blockId }} onPick={onPick} onClose={close} />
       ) : null}

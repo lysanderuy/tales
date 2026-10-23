@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { applySessionResult } from "@/hooks/use-current-session";
+import { invalidatePlanData } from "@/hooks/use-plan-blocks";
 import { api } from "@/lib/api/client";
 import { useToastStore } from "@/stores/toast.store";
 import { useUiStore } from "@/stores/ui.store";
@@ -22,6 +23,7 @@ export function useStopSession() {
       api.post<SessionResponse>(`/api/sessions/${id}/stop`, endedAt ? { endedAt } : {}),
     onSuccess: (session) => {
       applySessionResult(queryClient, session);
+      invalidatePlanData(queryClient);
       useUiStore.getState().setJustStopped(session);
     },
     onError: showError,

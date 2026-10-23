@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
 
 import { applySessionResult } from "@/hooks/use-current-session";
+import { invalidatePlanData } from "@/hooks/use-plan-blocks";
 import { api } from "@/lib/api/client";
 import { useToastStore } from "@/stores/toast.store";
 import type { SessionResponse, updateSessionSchema } from "@/validators/study-session.validator";
@@ -17,7 +18,10 @@ export function useUpdateSession({ toastOnError = true }: { toastOnError?: boole
   return useMutation({
     mutationFn: ({ id, ...body }: UpdateSessionVariables) =>
       api.patch<SessionResponse>(`/api/sessions/${id}`, body),
-    onSuccess: (session) => applySessionResult(queryClient, session),
+    onSuccess: (session) => {
+      applySessionResult(queryClient, session);
+      invalidatePlanData(queryClient);
+    },
     onError: toastOnError ? showError : undefined,
   });
 }

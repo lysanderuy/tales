@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
 
 import { applySessionResult } from "@/hooks/use-current-session";
+import { invalidatePlanData } from "@/hooks/use-plan-blocks";
 import { api } from "@/lib/api/client";
 import { useToastStore } from "@/stores/toast.store";
 import type { startBlockSchema } from "@/validators/block.validator";
@@ -18,7 +19,10 @@ export function useStartBlock() {
   return useMutation({
     mutationFn: ({ blockId, ...body }: StartBlockVariables) =>
       api.post<SessionResponse>(`/api/blocks/${blockId}/start`, body),
-    onSuccess: (session) => applySessionResult(queryClient, session),
+    onSuccess: (session) => {
+      applySessionResult(queryClient, session);
+      invalidatePlanData(queryClient);
+    },
     onError: showError,
   });
 }

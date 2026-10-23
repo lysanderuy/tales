@@ -4,8 +4,8 @@ import { useRef, useState, type ReactNode } from "react";
 
 import { CardHeader } from "@/components/shared/card-header";
 import { PlayIcon } from "@/components/shared/icons";
-import { EditRecordDialog } from "@/components/shared/edit-record-dialog";
 import { RecordChooser, type RecordChoice } from "@/components/shared/record-chooser";
+import { EditRecordDialog } from "@/components/shared/edit-record-dialog";
 import { Card } from "@/components/ui/card";
 import { IconButton } from "@/components/ui/icon-button";
 import { Swatch } from "@/components/ui/swatch";
@@ -40,6 +40,7 @@ type TodaysStudyCardProps = {
 
 type RowView = {
   key: string;
+  timeOfDay: string;
   subject: SubjectInfo | null;
   times: string;
   progress: string;
@@ -53,6 +54,7 @@ function toRowView(row: TodayRow, index: SubjectIndex): RowView {
   if (row.kind === "planned") {
     return {
       key: row.blockId,
+      timeOfDay: row.timeOfDay ?? "",
       subject: resolveSubject(index, row.nodeId, messages.todayUnknownSubject),
       times: formatTimeRanges(row.records, messages.todayRunningEnd),
       progress: formatProgress(row.plannedMinutes, row.progressSeconds),
@@ -74,6 +76,7 @@ function toRowView(row: TodayRow, index: SubjectIndex): RowView {
   const duration = formatSeconds(row.seconds);
   return {
     key: row.recordId,
+    timeOfDay: "",
     subject: row.nodeId ? resolveSubject(index, row.nodeId, messages.todayUnknownSubject) : null,
     times: "",
     progress: row.live
@@ -168,6 +171,9 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
                     records={view.records}
                     onOpen={(id, opener) => setEditing({ id, opener })}
                   >
+                    <span className="num w-11 shrink-0 text-small text-text-faint">
+                      {view.timeOfDay}
+                    </span>
                     <Swatch color={color} />
                     <span className="block min-w-0 flex-1">
                       <span
@@ -177,7 +183,11 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
                         )}
                       >
                         <span className="truncate">
-                          {view.subject ? view.subject.name : messages.todayWhatStudying}
+                          {view.subject
+                            ? view.subject.name
+                            : view.live
+                              ? messages.todayWhatStudying
+                              : messages.todayWhatStudied}
                         </span>
                         {view.live ? (
                           <span

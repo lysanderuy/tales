@@ -6,16 +6,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { EditRecordSubject } from "@/components/shared/edit-record-subject";
 import { EndScreenDiscard } from "@/components/shared/end-screen-discard";
 import { EndScreenMethods } from "@/components/shared/end-screen-methods";
+import { Section, failureText } from "@/components/shared/form-parts";
 import { CloseIcon } from "@/components/shared/icons";
+import { TimeField } from "@/components/shared/time-field";
 import { Button } from "@/components/ui/button";
-import { Eyebrow } from "@/components/ui/eyebrow";
 import { IconButton } from "@/components/ui/icon-button";
-import { TextField } from "@/components/ui/text-field";
 import { useDeleteSession } from "@/hooks/use-delete-session";
 import { sessionKeys } from "@/hooks/use-session";
 import { useSubjects } from "@/hooks/use-subjects";
 import { useUpdateSession } from "@/hooks/use-update-session";
-import { ApiError } from "@/lib/api/client";
 import { messages } from "@/lib/messages";
 import { localDateKey } from "@/lib/time/zone";
 import {
@@ -29,24 +28,6 @@ import { buildSubjectIndex, resolveSubject } from "@/lib/today/subject-index";
 import type { SessionResponse } from "@/validators/study-session.validator";
 
 const NOTE_MAX_LENGTH = 5000;
-const USER_FACING_STATUSES = new Set([400, 404, 409, 422]);
-
-function failureText(error: unknown): string {
-  return error instanceof ApiError && USER_FACING_STATUSES.has(error.status)
-    ? error.message
-    : messages.serverError;
-}
-
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="mt-6">
-      <Eyebrow as="div" className="mb-2">
-        {label}
-      </Eyebrow>
-      {children}
-    </div>
-  );
-}
 
 type EditRecordFormProps = {
   record: SessionResponse;
@@ -69,6 +50,8 @@ export function EditRecordForm({
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [startValid, setStartValid] = useState(true);
+  const [endValid, setEndValid] = useState(true);
   const busy = update.isPending || remove.isPending;
 
   useEffect(() => {
@@ -96,6 +79,10 @@ export function EditRecordForm({
   };
 
   const onSave = async () => {
+    if (!startValid || !endValid) {
+      setError(messages.timeInvalid);
+      return;
+    }
     const result = buildRecordPatch(record, edits, timeZone);
     if (!result.ok) {
       setError(
@@ -130,7 +117,7 @@ export function EditRecordForm({
 
   return (
     <>
-      <Section label={messages.todayWhatStudying}>
+      <div className="mt-6">
         <EditRecordSubject
           nodeId={edits.nodeId}
           blockId={edits.blockId}
@@ -138,7 +125,39 @@ export function EditRecordForm({
           onPick={(nodeId, blockId) => patch({ nodeId, blockId })}
           onOpenChange={setPickerOpen}
         />
-      </Section>
+      </div>
+
+      <div className="mt-6 flex gap-3">
+        <div className="min-w-0 flex-1">
+          <TimeField
+            label={messages.editStart}
+            defaultValue={edits.start}
+            onChange={(value, valid) => {
+              setStartValid(valid);
+              patch({ start: value });
+            }}
+          />
+        </div>
+        {record.endedAt ? (
+          <div className="min-w-0 flex-1">
+            <TimeField
+              label={messages.editEnd}
+              defaultValue={edits.end}
+              onChange={(value, valid) => {
+                setEndValid(valid);
+                patch({ end: value });
+              }}
+              trailing={
+                endDay !== startDay ? (
+                  <span className="num whitespace-nowrap text-small text-text-soft">
+                    {formatDayLabel(endDay)}
+                  </span>
+                ) : undefined
+              }
+            />
+          </div>
+        ) : null}
+      </div>
 
       <Section label={messages.endMethod}>
         <EndScreenMethods value={edits.methodTag} onChange={(methodTag) => patch({ methodTag })} />
@@ -154,36 +173,6 @@ export function EditRecordForm({
           className="block h-20 w-full resize-none rounded-field bg-fill px-3.5 py-3 text-body text-text placeholder:text-text-faint"
         />
       </Section>
-
-      <div className="mt-6 flex gap-3">
-        <div className="min-w-0 flex-1">
-          <TextField
-            label={messages.editStart}
-            type="time"
-            value={edits.start}
-            onChange={(event) => patch({ start: event.target.value })}
-            className="num"
-          />
-        </div>
-        {record.endedAt ? (
-          <div className="min-w-0 flex-1">
-            <TextField
-              label={messages.editEnd}
-              type="time"
-              value={edits.end}
-              onChange={(event) => patch({ end: event.target.value })}
-              className="num"
-              trailing={
-                endDay !== startDay ? (
-                  <span className="num whitespace-nowrap text-small text-text-soft">
-                    {formatDayLabel(endDay)}
-                  </span>
-                ) : undefined
-              }
-            />
-          </div>
-        ) : null}
-      </div>
 
       <p role="alert" className="mt-2 min-h-5 text-small text-danger">
         {error}

@@ -10,7 +10,7 @@ const tabClass = "rounded-full px-4 py-2 text-ui font-medium";
 
 const tabs: { label: string; href?: string }[] = [
   { label: messages.navToday, href: "/today" },
-  { label: messages.navPlan },
+  { label: messages.navPlan, href: "/plan" },
   { label: messages.navSubjects, href: "/subjects" },
   { label: messages.navEvents },
   { label: messages.navReports },

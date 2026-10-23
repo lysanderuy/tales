@@ -39,6 +39,7 @@ type PickerProps = {
   selected: PickerSelection;
   onPick: (nodeId: string, blockId: string | null) => void;
   onClose: () => void;
+  hidePlanned?: boolean;
 };
 
 function readViewport(): Viewport {
@@ -55,7 +56,7 @@ function useViewport(): Viewport {
   return viewport;
 }
 
-export function Picker({ anchor, selected, onPick, onClose }: PickerProps) {
+export function Picker({ anchor, selected, onPick, onClose, hidePlanned }: PickerProps) {
   const [query, setQuery] = useState("");
   const [sideId, setSideId] = useState<string | null>(null);
   const viewport = useViewport();
@@ -79,7 +80,10 @@ export function Picker({ anchor, selected, onPick, onClose }: PickerProps) {
 
   const close = useDismiss(rootRef, anchorRef, true, onClose);
 
-  const data = picker.data;
+  const data = useMemo(
+    () => (hidePlanned && picker.data ? { ...picker.data, planned: [] } : picker.data),
+    [hidePlanned, picker.data],
+  );
   const nodes = subjects.data;
   const searchView = data?.nodes !== undefined;
 

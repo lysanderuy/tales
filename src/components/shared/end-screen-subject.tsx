@@ -45,7 +45,7 @@ export const EndScreenSubject = forwardRef<HTMLButtonElement, EndScreenSubjectPr
           >
             {hasSubject
               ? (subject?.name ?? messages.todayUnknownSubject)
-              : messages.todayWhatStudying}
+              : messages.todayWhatStudied}
           </span>
           {subject && subject.ancestors.length > 0 ? (
             <span className="mt-0.5 block text-caption text-text-faint">
