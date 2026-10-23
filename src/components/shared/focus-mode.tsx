@@ -77,6 +77,15 @@ function FocusDialog({ session, display }: FocusDialogProps) {
   }, []);
 
   useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = "hidden";
+    return () => {
+      root.style.overflow = previous;
+    };
+  }, []);
+
+  useEffect(() => {
     // Capture phase runs before the Picker and tool menus close themselves on the same keypress.
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape" || event.isComposing) return;
@@ -112,7 +121,7 @@ function FocusDialog({ session, display }: FocusDialogProps) {
       aria-modal="true"
       aria-label={messages.focusLabel}
       onClickCapture={unlockAudio}
-      className="fixed inset-0 z-[var(--z-focus)] flex flex-col items-center overflow-auto bg-bg px-6 py-14 text-center"
+      className="fixed inset-0 z-[var(--z-focus)] flex flex-col items-center overflow-hidden bg-bg px-6 py-14 text-center"
     >
       <div className="absolute left-6 top-6">
         <IconButton size="sm" label={messages.focusMinimize} onClick={() => setFocusOpen(false)}>

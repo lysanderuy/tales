@@ -35,7 +35,7 @@ export function ToolMenu({ label, icon, variant, children }: ToolMenuProps) {
         <div
           ref={containerRef}
           data-focus-popover=""
-          className="absolute left-1/2 top-[52px] z-[6] w-[220px] -translate-x-1/2 rounded-field border border-border bg-surface p-1.5 text-left"
+          className="absolute left-1/2 bottom-[52px] z-[6] w-[220px] -translate-x-1/2 rounded-field border border-border bg-surface p-1.5 text-left"
         >
           {children(close)}
         </div>
