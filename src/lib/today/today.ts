@@ -1,6 +1,7 @@
 export interface TodayBlock {
   id: string;
   nodeId: string;
+  timeOfDay: string | null;
   plannedMinutes: number | null;
 }
 
@@ -27,6 +28,7 @@ export interface PlannedRow {
   kind: "planned";
   blockId: string;
   nodeId: string;
+  timeOfDay: string | null;
   plannedMinutes: number | null;
   progressSeconds: number;
   records: TodayPlannedRecord[];
@@ -69,6 +71,7 @@ export function assembleToday(input: {
       kind: "planned",
       blockId: block.id,
       nodeId: block.nodeId,
+      timeOfDay: block.timeOfDay,
       plannedMinutes: block.plannedMinutes,
       progressSeconds: input.progressByBlockId.get(block.id) ?? 0,
       records: mine.map((record) => ({

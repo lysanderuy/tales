@@ -5,6 +5,7 @@ import { assembleToday, pickNextUp, type TodayBlock, type TodayRecord } from "./
 const block = (id: string, plannedMinutes: number | null = 60): TodayBlock => ({
   id,
   nodeId: `node-${id}`,
+  timeOfDay: null,
   plannedMinutes,
 });
 
@@ -38,6 +39,18 @@ describe("assembleToday", () => {
     });
     expect(rows.map((row) => row.kind)).toEqual(["planned", "free"]);
     expect(rows[1]).toMatchObject({ recordId: "r1", live: true });
+  });
+
+  it("carries a block's time of day onto its planned row", () => {
+    const rows = assembleToday({
+      blocks: [{ ...block("b1"), timeOfDay: "08:30" }, block("b2")],
+      progressByBlockId: new Map(),
+      records: [],
+    });
+    expect(rows.map((row) => (row.kind === "planned" ? row.timeOfDay : undefined))).toEqual([
+      "08:30",
+      null,
+    ]);
   });
 
   it("is empty with nothing planned or studied", () => {

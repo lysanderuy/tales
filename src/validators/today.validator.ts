@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { timeOfDaySchema } from "@/validators/block.validator";
 import { todaysLineSchema } from "@/validators/daily-set.validator";
 
 const idSchema = z.string().uuid();
@@ -41,6 +42,7 @@ const plannedRowSchema = z
     kind: z.literal("planned"),
     blockId: idSchema.meta({ description: "Planned item ID." }),
     nodeId: nodeIdSchema,
+    timeOfDay: timeOfDaySchema.nullable().meta({ description: "Null when no time of day is set." }),
     plannedMinutes: z.number().int().nullable().meta({ description: "Null when open-ended." }),
     progressSeconds: z.number().meta({
       description: "Time studied on this planned item, not counting pauses.",

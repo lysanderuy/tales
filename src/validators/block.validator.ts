@@ -20,7 +20,7 @@ const dateKeySchema = z
   )
   .meta({ description: "Local calendar day, YYYY-MM-DD.", example: "2026-01-15" });
 
-const timeOfDaySchema = z
+export const timeOfDaySchema = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
   .meta({ description: "Time of day label, HH:mm. Does not affect order.", example: "08:30" });
