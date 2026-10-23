@@ -192,8 +192,6 @@ export const messages = {
   subjectsExport: "Export",
   subjectsImportSoon: "Import is coming soon.",
   subjectsExportSoon: "Export is coming soon.",
-  subjectsNewUnder: (name: string) => `New items go under ${name}`,
-  subjectsNewTopLevel: "New items go at the top level",
   subjectsSubjectOne: "Subject",
   subjectsSubjectMany: "Subjects",
   subjectsTopicOne: "Topic",

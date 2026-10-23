@@ -194,16 +194,7 @@ export function SubjectsView() {
             <SubjectsEmpty onAdd={() => startAdd(null)} />
           ) : (
             <>
-              {empty ? null : (
-                <>
-                  <p className="-mt-1 mb-3 ml-0.5 min-h-[18px] truncate text-eyebrow text-text-faint">
-                    {selected
-                      ? messages.subjectsNewUnder(selected.name)
-                      : messages.subjectsNewTopLevel}
-                  </p>
-                  <SubjectsSearch value={query} onChange={setQuery} />
-                </>
-              )}
+              {empty ? null : <SubjectsSearch value={query} onChange={setQuery} />}
               {rows.length === 0 && !adding ? (
                 <p className="p-2 text-ui text-text-faint">{messages.pickerNoMatch}</p>
               ) : (
