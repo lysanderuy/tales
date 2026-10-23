@@ -44,7 +44,9 @@ export function PlanCard({ block, lookup, past, records, onOpen, onOpenRecord }:
   const main = (
     <>
       <span className="flex items-start gap-2 text-caption font-semibold leading-[1.3]">
-        <span className="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">{info.name}</span>
+        <span title={info.name} className="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">
+          {info.name}
+        </span>
         {archived ? <ArchivedTag /> : null}
       </span>
       <span className="num mt-1 flex flex-wrap items-center gap-x-[9px] text-caption text-text-soft">
@@ -145,7 +147,9 @@ export function PlanGhostCard({ record, lookup, timeZone, onOpenRecord }: PlanGh
       className="mb-2 block w-full rounded-row border-[1.5px] border-dashed border-[color-mix(in_srgb,var(--text-faint)_55%,transparent)] p-2.5 text-left hover:bg-fill"
     >
       <span className="block text-caption font-medium leading-[1.3] text-text-soft">
-        <span className="line-clamp-2 [overflow-wrap:anywhere]">{info.name}</span>
+        <span title={info.name} className="line-clamp-2 [overflow-wrap:anywhere]">
+          {info.name}
+        </span>
       </span>
       <span className="num mt-1 inline-flex items-center gap-[7px] text-caption text-text-soft">
         <Swatch color={info.color} className="size-[9px]" />

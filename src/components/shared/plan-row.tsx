@@ -201,10 +201,16 @@ export function PlanRow({
       <Swatch color={info.color} className={cn(archived && "opacity-60 grayscale")} />
       <span className="block min-w-0 flex-1">
         <span className="flex items-center gap-2 font-semibold">
-          <span className="truncate">{info.name}</span>
+          <span title={info.name} className="truncate">
+            {info.name}
+          </span>
           {archived ? <ArchivedTag /> : null}
         </span>
-        {path ? <span className="block truncate text-caption text-text-faint">{path}</span> : null}
+        {path ? (
+          <span title={path} className="block truncate text-caption text-text-faint">
+            {path}
+          </span>
+        ) : null}
       </span>
     </>
   );

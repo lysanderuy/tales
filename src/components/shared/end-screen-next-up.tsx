@@ -32,7 +32,9 @@ export function EndScreenNextUp({
         <Eyebrow as="div" className="mb-0.5">
           {messages.endNextUp}
         </Eyebrow>
-        <div className="num truncate">{text}</div>
+        <div title={text} className="num truncate">
+          {text}
+        </div>
       </div>
       <IconButton
         size="xs"

@@ -32,6 +32,7 @@ export function SubjectTrigger({
       className="group -ml-2.5 block max-w-full rounded-row px-2.5 py-1 text-left"
     >
       <span
+        title={name ?? undefined}
         className={cn(
           "block truncate text-name tracking-[-0.01em] underline decoration-1 underline-offset-[5px]",
           name
@@ -43,7 +44,9 @@ export function SubjectTrigger({
         {name ?? placeholder}
       </span>
       {name && path ? (
-        <span className="mt-0.5 block truncate text-caption text-text-faint">{path}</span>
+        <span title={path} className="mt-0.5 block truncate text-caption text-text-faint">
+          {path}
+        </span>
       ) : null}
     </button>
   );

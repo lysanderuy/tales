@@ -63,6 +63,7 @@ export function RunningBar({ session, display, subjectName }: RunningBarProps) {
         aria-haspopup="dialog"
         aria-expanded={pickerOpen}
         onClick={() => setPickerOpen((value) => !value)}
+        title={subjectName ?? undefined}
         className="max-w-[190px] truncate rounded-row px-1.5 py-1 text-small text-text-soft hover:bg-fill"
       >
         {subjectName ?? messages.todayWhatStudying}

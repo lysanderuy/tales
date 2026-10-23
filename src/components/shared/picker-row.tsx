@@ -48,8 +48,14 @@ export function PickerRowButton({
     >
       {color ? <Swatch color={color} /> : null}
       <span className="min-w-0 flex-1">
-        <span className={cn("block truncate", strong && "font-semibold")}>{name}</span>
-        {sub ? <span className="block truncate text-eyebrow text-text-faint">{sub}</span> : null}
+        <span title={name} className={cn("block truncate", strong && "font-semibold")}>
+          {name}
+        </span>
+        {sub ? (
+          <span title={sub} className="block truncate text-eyebrow text-text-faint">
+            {sub}
+          </span>
+        ) : null}
       </span>
       {right ? (
         <span className="num whitespace-nowrap text-caption text-text-soft">{right}</span>

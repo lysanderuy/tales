@@ -182,7 +182,7 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
                           view.subject ? "font-semibold" : "font-medium text-text-faint",
                         )}
                       >
-                        <span className="truncate">
+                        <span title={view.subject?.name} className="truncate">
                           {view.subject
                             ? view.subject.name
                             : view.live
@@ -197,7 +197,9 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
                         ) : null}
                       </span>
                       {path ? (
-                        <span className="block truncate text-caption text-text-faint">{path}</span>
+                        <span title={path} className="block truncate text-caption text-text-faint">
+                          {path}
+                        </span>
                       ) : null}
                       {view.times ? (
                         <span className="num block truncate text-caption text-text-faint">

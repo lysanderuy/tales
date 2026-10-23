@@ -47,7 +47,10 @@ export function HeroCard({ hero, className }: { hero: HeroState<NextEvent>; clas
             )}
           >
             <Eyebrow className="text-on-hero-soft">{messages.todayNextEvent}</Eyebrow>
-            <p className="mt-4 line-clamp-2 text-h2 font-semibold leading-[1.2] tracking-[-0.01em]">
+            <p
+              title={event.title}
+              className="mt-4 line-clamp-2 text-h2 font-semibold leading-[1.2] tracking-[-0.01em]"
+            >
               {event.title}
             </p>
             <p className="num mt-1.5 text-ui text-on-hero-soft">{formatEventSub(event)}</p>

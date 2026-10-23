@@ -147,9 +147,14 @@ export function PlanDayView({
                     >
                       <Swatch color={info.color} />
                       <span className="block min-w-0 flex-1">
-                        <span className="block truncate font-semibold">{info.name}</span>
+                        <span title={info.name} className="block truncate font-semibold">
+                          {info.name}
+                        </span>
                         {path ? (
-                          <span className="block truncate text-caption text-text-faint">
+                          <span
+                            title={path}
+                            className="block truncate text-caption text-text-faint"
+                          >
                             {path}
                           </span>
                         ) : null}
