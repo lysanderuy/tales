@@ -54,7 +54,7 @@ export function PastSevenDaysCard({ todayDate, days, index, className }: PastSev
                       <span
                         key={entry.rootId}
                         title={`${subject.name} ${formatSeconds(entry.seconds)}`}
-                        className="block w-full rounded-md"
+                        className="block w-full rounded-[6px]"
                         style={{
                           height: segmentHeightPx(entry.seconds, scale),
                           background: subject.color,
