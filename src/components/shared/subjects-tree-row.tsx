@@ -70,7 +70,10 @@ export function SubjectsTreeRow({
       aria-level={depth + 1}
       aria-selected={selected}
       aria-expanded={hasChildren ? open : undefined}
-      onClick={() => onSelect(node.id)}
+      onClick={() => {
+        onSelect(node.id);
+        if (hasChildren && !rename) onToggle(node.id, !open);
+      }}
       style={{ paddingLeft: padding }}
       className={cn(
         "relative flex cursor-pointer select-none items-center gap-2 rounded-row py-1.5 pr-2 transition-colors duration-[var(--dur-fast)]",
