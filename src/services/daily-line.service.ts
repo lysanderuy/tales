@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { lockUser, owned } from "@/db/owned";
@@ -16,7 +16,7 @@ import {
 import { AppError } from "@/lib/api/response";
 import { chooseLine, parsePasteLines } from "@/lib/daily/pick";
 import { messages } from "@/lib/messages";
-import { localDateKey } from "@/lib/time/zone";
+import { DEFAULT_TIME_ZONE, localDateKey } from "@/lib/time/zone";
 import { findOwnSet, findReadableSet, readableSetCondition } from "@/services/daily-set.service";
 import type {
   BulkDailyLinesInput,
@@ -27,9 +27,9 @@ import type {
   UpdateDailyLineInput,
 } from "@/validators/daily-set.validator";
 
-const DEFAULT_TIME_ZONE = "Asia/Manila";
 const HISTORY_CAP = 2000;
 const INSERT_CHUNK = 1000;
+export const MAX_LINES_PER_SET = 5000;
 
 function toResponse(row: DailyLine, hidden: boolean): DailyLineResponse {
   return { id: row.id, setId: row.setId, text: row.text, position: row.position, hidden };
@@ -43,6 +43,32 @@ async function nextPosition(tx: Tx, setId: string): Promise<number> {
     .from(dailyLines)
     .where(eq(dailyLines.setId, setId));
   return row.max + 1;
+}
+
+async function countLines(tx: Tx, setId: string): Promise<number> {
+  const [row] = await tx
+    .select({ count: sql<number>`count(*)::int` })
+    .from(dailyLines)
+    .where(eq(dailyLines.setId, setId));
+  return row.count;
+}
+
+async function existingTexts(executor: Tx | typeof db, setId: string): Promise<string[]> {
+  const rows = await executor
+    .select({ text: dailyLines.text })
+    .from(dailyLines)
+    .where(eq(dailyLines.setId, setId));
+  return rows.map((row) => row.text);
+}
+
+function inOwnEditableSets(userId: string) {
+  return inArray(
+    dailyLines.setId,
+    db
+      .select({ id: dailySets.id })
+      .from(dailySets)
+      .where(and(eq(dailySets.ownerId, userId), eq(dailySets.builtIn, false))),
+  );
 }
 
 async function loadReadableLine(
@@ -120,7 +146,8 @@ export const dailyLineService = {
         .select()
         .from(dailyLines)
         .where(eq(dailyLines.setId, setId))
-        .orderBy(asc(dailyLines.position), asc(dailyLines.id)),
+        .orderBy(asc(dailyLines.position), asc(dailyLines.id))
+        .limit(MAX_LINES_PER_SET),
       db
         .select({ lineId: hiddenLines.lineId })
         .from(hiddenLines)
@@ -139,6 +166,9 @@ export const dailyLineService = {
     await findOwnSet(userId, setId);
     const row = await db.transaction(async (tx) => {
       await lockUser(tx, userId);
+      if ((await countLines(tx, setId)) >= MAX_LINES_PER_SET) {
+        throw new AppError(422, messages.dailySetFull);
+      }
       const [created] = await tx
         .insert(dailyLines)
         .values({ setId, text: input.text, position: await nextPosition(tx, setId) })
@@ -157,14 +187,19 @@ export const dailyLineService = {
     const [row] = await db
       .update(dailyLines)
       .set({ text: input.text })
-      .where(eq(dailyLines.id, id))
+      .where(and(eq(dailyLines.id, id), inOwnEditableSets(userId)))
       .returning();
+    if (!row) throw new AppError(404, messages.notFound);
     return toResponse(row, await isHidden(userId, id));
   },
 
   async removeLine(userId: string, id: string): Promise<void> {
     await loadOwnLine(userId, id);
-    await db.delete(dailyLines).where(eq(dailyLines.id, id));
+    const deleted = await db
+      .delete(dailyLines)
+      .where(and(eq(dailyLines.id, id), inOwnEditableSets(userId)))
+      .returning({ id: dailyLines.id });
+    if (deleted.length === 0) throw new AppError(404, messages.notFound);
   },
 
   async bulkAdd(
@@ -173,25 +208,33 @@ export const dailyLineService = {
     input: BulkDailyLinesInput,
   ): Promise<BulkDailyLinesResponse> {
     await findOwnSet(userId, setId);
-    const existing = await db
-      .select({ text: dailyLines.text })
-      .from(dailyLines)
-      .where(eq(dailyLines.setId, setId));
-    const parsed = parsePasteLines(
-      input.text,
-      existing.map((row) => row.text),
-    );
-    if (!input.preview && parsed.lines.length > 0) {
-      await db.transaction(async (tx) => {
+    let parsed: ReturnType<typeof parsePasteLines>;
+    if (input.preview) {
+      const existing = await existingTexts(db, setId);
+      parsed = parsePasteLines(input.text, existing);
+      if (existing.length + parsed.lines.length > MAX_LINES_PER_SET) {
+        throw new AppError(422, messages.dailySetFull);
+      }
+    } else {
+      parsed = await db.transaction(async (tx) => {
         await lockUser(tx, userId);
-        const start = await nextPosition(tx, setId);
-        for (let offset = 0; offset < parsed.lines.length; offset += INSERT_CHUNK) {
-          await tx.insert(dailyLines).values(
-            parsed.lines
-              .slice(offset, offset + INSERT_CHUNK)
-              .map((text, index) => ({ setId, text, position: start + offset + index })),
-          );
+        const existing = await existingTexts(tx, setId);
+        const result = parsePasteLines(input.text, existing);
+        if (existing.length + result.lines.length > MAX_LINES_PER_SET) {
+          throw new AppError(422, messages.dailySetFull);
         }
+        if (result.lines.length === 0) return result;
+        const start = await nextPosition(tx, setId);
+        for (let offset = 0; offset < result.lines.length; offset += INSERT_CHUNK) {
+          await tx
+            .insert(dailyLines)
+            .values(
+              result.lines
+                .slice(offset, offset + INSERT_CHUNK)
+                .map((text, index) => ({ setId, text, position: start + offset + index })),
+            );
+        }
+        return result;
       });
     }
     return {
