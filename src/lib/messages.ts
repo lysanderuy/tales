@@ -170,7 +170,7 @@ export const messages = {
   planBandAfternoon: "Afternoon",
   planBandEvening: "Evening",
   planBandUnscheduled: "Unscheduled",
-  planActualSpan: (start: string, end: string) => `Did ${start}–${end}`,
+  planStartedAt: (start: string) => `Started ${start}`,
   logTitle: "Log study",
   timePlaceholder: "08:30",
   timeInvalid: "Enter a time like 8:30 or 20:30.",

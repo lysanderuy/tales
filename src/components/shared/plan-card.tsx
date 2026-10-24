@@ -55,13 +55,10 @@ export function PlanCard({
         : messages.planOpen;
 
   const first = sessions[0];
-  const last = sessions[sessions.length - 1];
   const actualStart = first ? formatClock(new Date(first.startedAt), timeZone) : null;
   const actualSpan =
-    withRecords && block.timeOfDay && actualStart && last?.endedAt
-      ? startsOffPlan(block.timeOfDay, actualStart)
-        ? messages.planActualSpan(actualStart, formatClock(new Date(last.endedAt), timeZone))
-        : null
+    withRecords && actualStart && (!block.timeOfDay || startsOffPlan(block.timeOfDay, actualStart))
+      ? messages.planStartedAt(actualStart)
       : null;
 
   const main = (
@@ -77,7 +74,7 @@ export function PlanCard({
           color={info.color}
           className={cn("size-[9px]", archived && "opacity-60 grayscale")}
         />
-        {block.timeOfDay ?? (withRecords ? actualStart : null)}
+        {block.timeOfDay}
       </span>
       {actualSpan ? (
         <span className="num mt-1 block text-caption text-text-faint">{actualSpan}</span>
@@ -176,7 +173,9 @@ export function PlanGhostCard({ record, lookup, timeZone, onOpenRecord }: PlanGh
       </span>
       <span className="num mt-1 flex items-center gap-[7px] text-caption text-text-faint">
         <Swatch color={info.color} className="size-[9px]" />
-        {start}
+      </span>
+      <span className="num mt-1 block text-caption text-text-faint">
+        {messages.planStartedAt(start)}
       </span>
       <span className="num mt-2 block text-caption text-text-soft">
         {formatSeconds(record.activeSeconds)}
