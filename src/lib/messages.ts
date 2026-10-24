@@ -36,6 +36,7 @@ export const messages = {
     "Built-in sets and their lines can't be changed. You can hide a line instead.",
   dailySetFull: "A set can hold up to 5000 lines.",
   authInvalidCredentials: "Email or password is wrong.",
+  accountPasswordWrong: "Password is wrong.",
   authEmailTaken: "That email already has an account.",
   authEmailNotConfirmed: "Confirm your email first. We can send the email again.",
   authConfirmationSent: "Confirmation email sent. Check your inbox.",
