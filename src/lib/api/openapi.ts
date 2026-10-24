@@ -59,6 +59,7 @@ import {
   renameTemplateSchema,
   templateResponseSchema,
 } from "@/validators/template.validator";
+import { deleteAccountSchema } from "@/validators/account.validator";
 import { profileResponseSchema, updateProfileSchema } from "@/validators/profile.validator";
 import { reportQuerySchema, reportResponseSchema } from "@/validators/report.validator";
 import {
@@ -230,6 +231,7 @@ const paths: ZodOpenApiPathsObject = {
   "/api/account": {
     delete: {
       summary: "Delete the authenticated user's account and all of their data",
+      requestBody: { content: { "application/json": { schema: deleteAccountSchema } } },
       responses: {
         "200": {
           description: "Account deleted.",
@@ -247,6 +249,7 @@ const paths: ZodOpenApiPathsObject = {
             "application/json": { schema: errorEnvelope },
           },
         },
+        "403": errorResponse("Password is wrong."),
         "409": errorResponse("Account data could not be removed because something depends on it."),
         "500": errorResponse("Account deletion failed; try again."),
       },
