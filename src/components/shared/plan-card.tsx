@@ -14,6 +14,7 @@ import type { RecordChoice } from "@/components/shared/record-chooser";
 import { Swatch } from "@/components/ui/swatch";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
+import { startsOffPlan } from "@/lib/plan/bands";
 import { progressFill } from "@/lib/plan/summary";
 import { formatClock } from "@/lib/time/zone";
 import { formatSeconds } from "@/lib/today/format";
@@ -24,22 +25,44 @@ type PlanCardProps = {
   block: BlockResponse;
   lookup: PlanLookup;
   past: boolean;
+  missed: boolean;
+  timeZone: string;
   records: readonly RecordChoice[];
+  sessions: readonly SessionResponse[];
   onOpen: (block: BlockResponse, opener: HTMLElement) => void;
   onOpenRecord: OpenRecord;
 };
 
-export function PlanCard({ block, lookup, past, records, onOpen, onOpenRecord }: PlanCardProps) {
+export function PlanCard({
+  block,
+  lookup,
+  past,
+  missed,
+  timeZone,
+  records,
+  sessions,
+  onOpen,
+  onOpenRecord,
+}: PlanCardProps) {
   const drag = useDraggable({ id: block.id });
   const { info, archived } = lookupSubject(lookup, block.nodeId);
-  const swatch = (
-    <Swatch color={info.color} className={cn("size-[9px]", archived && "opacity-60 grayscale")} />
-  );
-  const planned = block.plannedMinutes
-    ? messages.planMinutes(String(block.plannedMinutes))
-    : `${messages.planOpen}${past && block.progressSeconds > 0 ? ` · ${formatSeconds(block.progressSeconds)}` : ""}`;
-
   const withRecords = past && records.length > 0;
+  const status =
+    past && (block.plannedMinutes || block.progressSeconds > 0)
+      ? blockProgressText(block)
+      : block.plannedMinutes
+        ? messages.planMinutes(String(block.plannedMinutes))
+        : messages.planOpen;
+
+  const first = sessions[0];
+  const last = sessions[sessions.length - 1];
+  const actualStart = first ? formatClock(new Date(first.startedAt), timeZone) : null;
+  const actualSpan =
+    withRecords && block.timeOfDay && actualStart && last?.endedAt
+      ? startsOffPlan(block.timeOfDay, actualStart)
+        ? messages.planActualSpan(actualStart, formatClock(new Date(last.endedAt), timeZone))
+        : null
+      : null;
 
   const main = (
     <>
@@ -49,24 +72,16 @@ export function PlanCard({ block, lookup, past, records, onOpen, onOpenRecord }:
         </span>
         {archived ? <ArchivedTag /> : null}
       </span>
-      <span className="num mt-1 flex flex-wrap items-center gap-x-[9px] text-caption text-text-soft">
-        {block.timeOfDay ? (
-          <>
-            <span className="inline-flex items-center gap-[7px] whitespace-nowrap">
-              {swatch}
-              <span className="text-text-faint">{block.timeOfDay}</span>
-            </span>
-            {withRecords ? null : <span className="whitespace-nowrap">{planned}</span>}
-          </>
-        ) : withRecords ? (
-          swatch
-        ) : (
-          <span className="inline-flex items-center gap-[7px] whitespace-nowrap">
-            {swatch}
-            {planned}
-          </span>
-        )}
+      <span className="num mt-1 flex items-center gap-[7px] text-caption text-text-faint">
+        <Swatch
+          color={info.color}
+          className={cn("size-[9px]", archived && "opacity-60 grayscale")}
+        />
+        {block.timeOfDay ?? (withRecords ? actualStart : null)}
       </span>
+      {actualSpan ? (
+        <span className="num mt-1 block text-caption text-text-faint">{actualSpan}</span>
+      ) : null}
     </>
   );
   const bar =
@@ -83,13 +98,14 @@ export function PlanCard({ block, lookup, past, records, onOpen, onOpenRecord }:
     ) : null;
   const cardClass =
     "mb-2 block w-full rounded-row bg-fill text-left transition-colors duration-[var(--dur-fast)] hover:bg-fill-hover";
+  const cardState = cn("p-2.5", missed && "opacity-70", drag.isDragging && "opacity-40");
 
   if (withRecords) {
     return (
       <div
         ref={(element) => drag.setNodeRef(element)}
         {...drag.listeners}
-        className={cn(cardClass, "p-2.5", drag.isDragging && "opacity-40")}
+        className={cn(cardClass, cardState)}
       >
         <button
           type="button"
@@ -99,14 +115,20 @@ export function PlanCard({ block, lookup, past, records, onOpen, onOpenRecord }:
         >
           {main}
         </button>
-        <RecordProgress
-          choices={records}
-          onOpenRecord={onOpenRecord}
-          className="num mt-1 block rounded-row text-left text-caption text-text-soft underline decoration-dotted underline-offset-2 hover:text-text"
-        >
-          {blockProgressText(block)}
-        </RecordProgress>
-        {bar ? <span className="mt-2 block">{bar}</span> : null}
+        <span className="mt-2 block">
+          {records.length > 1 ? (
+            <RecordProgress
+              choices={records}
+              onOpenRecord={onOpenRecord}
+              className="num block rounded-row text-left text-caption text-text-soft underline decoration-dotted underline-offset-2 hover:text-text"
+            >
+              {status}
+            </RecordProgress>
+          ) : (
+            <span className="num text-caption text-text-soft">{status}</span>
+          )}
+        </span>
+        {bar ? <span className="mt-1.5 block">{bar}</span> : null}
       </div>
     );
   }
@@ -116,12 +138,13 @@ export function PlanCard({ block, lookup, past, records, onOpen, onOpenRecord }:
       type="button"
       ref={(element) => drag.setNodeRef(element)}
       {...drag.listeners}
-      title={past ? `${info.name} · ${blockProgressText(block)}` : info.name}
+      title={info.name}
       onClick={(event) => onOpen(block, event.currentTarget)}
-      className={cn(cardClass, "p-2.5", drag.isDragging && "opacity-40")}
+      className={cn(cardClass, cardState)}
     >
       {main}
-      {bar ? <span className="mt-2 block">{bar}</span> : null}
+      <span className="num mt-2 block text-caption text-text-soft">{status}</span>
+      {bar ? <span className="mt-1.5 block">{bar}</span> : null}
     </button>
   );
 }
@@ -151,8 +174,11 @@ export function PlanGhostCard({ record, lookup, timeZone, onOpenRecord }: PlanGh
           {info.name}
         </span>
       </span>
-      <span className="num mt-1 inline-flex items-center gap-[7px] text-caption text-text-soft">
+      <span className="num mt-1 flex items-center gap-[7px] text-caption text-text-faint">
         <Swatch color={info.color} className="size-[9px]" />
+        {start}
+      </span>
+      <span className="num mt-2 block text-caption text-text-soft">
         {formatSeconds(record.activeSeconds)}
       </span>
     </button>

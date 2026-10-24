@@ -30,7 +30,8 @@ import { useUpdateBlock } from "@/hooks/use-update-block";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
 import { dayOfMonth, formatDayTitle, formatWeekdayShort } from "@/lib/plan/dates";
-import { localDateKey } from "@/lib/time/zone";
+import { bandOf, groupIntoBands, type Band } from "@/lib/plan/bands";
+import { formatClock, localDateKey } from "@/lib/time/zone";
 import type { BlockResponse } from "@/validators/block.validator";
 import type { EventSummaryResponse } from "@/validators/event.validator";
 import type { SessionResponse } from "@/validators/study-session.validator";
@@ -51,6 +52,24 @@ type PlanWeekViewProps = {
   onOpenDay: (date: string) => void;
 };
 
+type ColumnItem =
+  { kind: "block"; block: BlockResponse } | { kind: "ghost"; record: SessionResponse };
+
+const BAND_LABELS: Record<Band, string> = {
+  morning: messages.planBandMorning,
+  afternoon: messages.planBandAfternoon,
+  evening: messages.planBandEvening,
+  unscheduled: messages.planBandUnscheduled,
+};
+
+function firstStartClock(
+  sessions: readonly SessionResponse[] | undefined,
+  timeZone: string,
+): string | null {
+  const first = sessions?.[0];
+  return first ? formatClock(new Date(first.startedAt), timeZone) : null;
+}
+
 type ColumnProps = {
   date: string;
   today: string;
@@ -60,6 +79,8 @@ type ColumnProps = {
   lookup: PlanLookup;
   timeZone: string;
   choicesByBlock: ReadonlyMap<string, RecordChoice[]>;
+  sessionsByBlock: ReadonlyMap<string, SessionResponse[]>;
+  currentBand: Band;
   onOpen: (block: BlockResponse, opener: HTMLElement) => void;
   onOpenRecord: OpenRecord;
   onOpenDay: (date: string) => void;
@@ -74,12 +95,27 @@ function PlanWeekColumn({
   lookup,
   timeZone,
   choicesByBlock,
+  sessionsByBlock,
+  currentBand,
   onOpen,
   onOpenRecord,
   onOpenDay,
 }: ColumnProps) {
   const drop = useDroppable({ id: date });
   const past = date <= today;
+  const items: ColumnItem[] = [
+    ...blocks.map((block): ColumnItem => ({ kind: "block", block })),
+    ...(past ? ghosts.map((record): ColumnItem => ({ kind: "ghost", record })) : []),
+  ];
+  const groups = groupIntoBands(
+    items,
+    (item) =>
+      item.kind === "block"
+        ? (item.block.timeOfDay ?? firstStartClock(sessionsByBlock.get(item.block.id), timeZone))
+        : formatClock(new Date(item.record.startedAt), timeZone),
+    // Sorted by time of day first, then position; ghosts follow blocks on a tie.
+    (item) => (item.kind === "block" ? item.block.position : Number.MAX_SAFE_INTEGER),
+  );
 
   return (
     <div
@@ -116,28 +152,42 @@ function PlanWeekColumn({
           {event.time ? `${event.title} · ${event.time}` : event.title}
         </span>
       ))}
-      {blocks.map((block) => (
-        <PlanCard
-          key={block.id}
-          block={block}
-          lookup={lookup}
-          past={past}
-          records={choicesByBlock.get(block.id) ?? []}
-          onOpen={onOpen}
-          onOpenRecord={onOpenRecord}
-        />
+      {groups.map((group) => (
+        <div key={group.band}>
+          <Eyebrow
+            className={cn(
+              "mb-2 block",
+              date === today && group.band === currentBand && "text-primary",
+            )}
+          >
+            {BAND_LABELS[group.band]}
+          </Eyebrow>
+          {group.items.map((item) =>
+            item.kind === "block" ? (
+              <PlanCard
+                key={item.block.id}
+                block={item.block}
+                lookup={lookup}
+                past={past}
+                missed={date < today && item.block.progressSeconds === 0}
+                timeZone={timeZone}
+                records={choicesByBlock.get(item.block.id) ?? []}
+                sessions={sessionsByBlock.get(item.block.id) ?? []}
+                onOpen={onOpen}
+                onOpenRecord={onOpenRecord}
+              />
+            ) : (
+              <PlanGhostCard
+                key={item.record.id}
+                record={item.record}
+                lookup={lookup}
+                timeZone={timeZone}
+                onOpenRecord={onOpenRecord}
+              />
+            ),
+          )}
+        </div>
       ))}
-      {past
-        ? ghosts.map((record) => (
-            <PlanGhostCard
-              key={record.id}
-              record={record}
-              lookup={lookup}
-              timeZone={timeZone}
-              onOpenRecord={onOpenRecord}
-            />
-          ))
-        : null}
     </div>
   );
 }
@@ -179,6 +229,18 @@ export function PlanWeekView({
     () => recordChoicesByBlock(records, timeZone),
     [records, timeZone],
   );
+
+  const sessionsByBlock = useMemo(() => {
+    const byBlock = new Map<string, SessionResponse[]>();
+    const sorted = [...records].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+    for (const record of sorted) {
+      if (record.blockId === null || record.endedAt === null) continue;
+      byBlock.set(record.blockId, [...(byBlock.get(record.blockId) ?? []), record]);
+    }
+    return byBlock;
+  }, [records]);
+
+  const currentBand = useMemo(() => bandOf(formatClock(new Date(), timeZone)), [timeZone]);
 
   const pastRecords = useMemo(
     () =>
@@ -231,6 +293,8 @@ export function PlanWeekView({
                   lookup={lookup}
                   timeZone={timeZone}
                   choicesByBlock={choicesByBlock}
+                  sessionsByBlock={sessionsByBlock}
+                  currentBand={currentBand}
                   onOpen={onOpen}
                   onOpenRecord={onOpenRecord}
                   onOpenDay={onOpenDay}
