@@ -52,9 +52,6 @@ page/client component → TanStack Query hook (src/hooks) → api wrapper (src/l
   code already shows, never narrates a past decision.
 - One place per fact: codebase-wide rules live here or in README, not
   repeated per file.
-- Exception: `// Example X — replace/extend per project.` markers on
-  template files (`profiles.ts`, `ui.store.ts`, `use-debounce.ts`, etc.)
-  flag disposability for someone cloning the repo — not a WHY comment.
 
 ## Testing
 
