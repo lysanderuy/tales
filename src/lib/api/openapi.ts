@@ -483,7 +483,7 @@ const paths: ZodOpenApiPathsObject = {
     patch: {
       tags: sessionTags,
       summary:
-        "Edit Subject or Topic, planned item, method, note, or (stopped records only) start and end. A new Subject or Topic outside the planned item detaches it. Editing start or end times discards pauses, so active time becomes end minus start. nodeId and blockId must not both be sent (422).",
+        "Edit Subject or Topic, planned item, method, note, or (stopped records only) start and end. A new Subject or Topic outside the planned item detaches it. Editing start or end times clears the record's pauses, so active time becomes end minus start. nodeId and blockId must not both be sent (422).",
       requestParams: { path: sessionIdParams },
       requestBody: { content: { "application/json": { schema: updateSessionSchema } } },
       responses: {
