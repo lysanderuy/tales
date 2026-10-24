@@ -43,7 +43,7 @@ export function SubjectsDetailMenu({
   const close = useCallback(() => setMode(null), []);
   useDismiss(containerRef, triggerRef, mode !== null, close);
 
-  const canDelete = (node.totals?.totalSeconds ?? 0) === 0;
+  const canDelete = node.totals?.hasRecords === false;
   const deleteLabel =
     topicCount > 0
       ? `${messages.subjectsDeleteWith} ${topicCount} ${topicCount === 1 ? messages.subjectsTopicOne : messages.subjectsTopicMany}`

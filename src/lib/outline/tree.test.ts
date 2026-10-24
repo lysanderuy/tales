@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildTree,
   descendantIds,
+  idsWithRecordsBelow,
   isDescendant,
   nextColorIndex,
   orderedRows,
@@ -124,6 +125,22 @@ describe("nextColorIndex", () => {
     expect(nextColorIndex(all)).toBe(0);
     expect(nextColorIndex([...all, 0])).toBe(1);
     expect(nextColorIndex([...all, 0, 1, 2])).toBe(3);
+  });
+});
+
+describe("idsWithRecordsBelow", () => {
+  it("marks a record's item and every ancestor, and nothing else", () => {
+    const result = idsWithRecordsBelow(rows, new Set(["f"]));
+    expect(result.has("f")).toBe(true);
+    expect(result.has("b")).toBe(true);
+    expect(result.has("a")).toBe(true);
+    expect(result.has("s")).toBe(true);
+    expect(result.has("t")).toBe(false);
+    expect(result.has("x")).toBe(false);
+  });
+
+  it("is empty when there are no records", () => {
+    expect(idsWithRecordsBelow(rows, new Set()).size).toBe(0);
   });
 });
 

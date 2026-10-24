@@ -4,10 +4,16 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { lockUser, owned } from "@/db/owned";
-import { outlineNodes, type OutlineNode } from "@/db/schema";
+import { blocks, outlineNodes, studySessions, type OutlineNode } from "@/db/schema";
 import { AppError, mapDbError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
-import { isDescendant, nextColorIndex, orderedRows, rollUp } from "@/lib/outline/tree";
+import {
+  idsWithRecordsBelow,
+  isDescendant,
+  nextColorIndex,
+  orderedRows,
+  rollUp,
+} from "@/lib/outline/tree";
 import { studySessionService, type NodeTotals } from "@/services/study-session.service";
 import type {
   CreateOutlineNodeInput,
@@ -94,6 +100,19 @@ function secondsAndLast(totals: Map<string, NodeTotals>) {
   return { seconds, last };
 }
 
+async function recordedNodeIds(userId: string): Promise<Set<string>> {
+  const [sessionRows, blockRows] = await Promise.all([
+    db
+      .selectDistinct({ nodeId: studySessions.nodeId })
+      .from(studySessions)
+      .where(owned(studySessions, userId)),
+    db.selectDistinct({ nodeId: blocks.nodeId }).from(blocks).where(owned(blocks, userId)),
+  ]);
+  const ids = new Set<string>();
+  for (const { nodeId } of [...sessionRows, ...blockRows]) if (nodeId) ids.add(nodeId);
+  return ids;
+}
+
 async function withTotals(
   userId: string,
   rows: OutlineNode[],
@@ -101,10 +120,12 @@ async function withTotals(
 ): Promise<OutlineNodeResponse[]> {
   const now = new Date();
   const recentFrom = await studySessionService.recentWindowStart(userId, now, 7);
-  const [allTime, recent] = await Promise.all([
+  const [allTime, recent, recorded] = await Promise.all([
     studySessionService.totalsByNode(userId),
     studySessionService.totalsByNode(userId, { from: recentFrom }),
+    recordedNodeIds(userId),
   ]);
+  const withRecords = idsWithRecordsBelow(rows, recorded);
   const all = secondsAndLast(allTime);
   const recentSeconds = secondsAndLast(recent);
   const rolledAll = rollUp(rows, all.seconds, all.last);
@@ -119,6 +140,7 @@ async function withTotals(
         ownSeconds: total?.ownSeconds ?? 0,
         last7DaysSeconds: rolledRecent.get(node.id)?.totalSeconds ?? 0,
         lastStudiedAt: total?.lastStudiedAt?.toISOString() ?? null,
+        hasRecords: withRecords.has(node.id),
       },
     };
   });

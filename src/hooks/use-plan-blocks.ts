@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery, type QueryClient, type QueryKey } from "@ta
 
 import { pickerKeys } from "@/hooks/use-picker";
 import { planRecordKeys } from "@/hooks/use-plan-records";
+import { subjectKeys } from "@/hooks/use-subjects";
 import { todayKeys } from "@/hooks/use-today";
 import { api } from "@/lib/api/client";
 import type { BlockResponse } from "@/validators/block.validator";
@@ -54,4 +55,5 @@ export function invalidatePlanData(queryClient: QueryClient): void {
   void queryClient.invalidateQueries({ queryKey: planRecordKeys.all });
   void queryClient.invalidateQueries({ queryKey: todayKeys.all });
   void queryClient.invalidateQueries({ queryKey: pickerKeys.all });
+  void queryClient.invalidateQueries({ queryKey: subjectKeys.all });
 }

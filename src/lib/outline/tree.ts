@@ -112,6 +112,19 @@ export function nextColorIndex(usedRootColorIndexes: readonly number[]): number 
   return usedRootColorIndexes.length % COLOR_COUNT;
 }
 
+export function idsWithRecordsBelow(
+  rows: readonly OutlineRow[],
+  directIds: ReadonlySet<string>,
+): Set<string> {
+  const result = new Set(directIds);
+  const ordered = orderedRows(rows);
+  for (let i = ordered.length - 1; i >= 0; i--) {
+    const row = ordered[i];
+    if (row.parentId !== null && result.has(row.id)) result.add(row.parentId);
+  }
+  return result;
+}
+
 export function rollUp(
   rows: readonly OutlineRow[],
   directSecondsById: ReadonlyMap<string, number>,

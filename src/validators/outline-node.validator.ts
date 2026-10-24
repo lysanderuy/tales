@@ -107,6 +107,9 @@ const totalsSchema = z
       .datetime()
       .nullable()
       .meta({ description: "When the most recent study on this item or below started." }),
+    hasRecords: z.boolean().meta({
+      description: "True if this item or anything under it has study time or planned items.",
+    }),
   })
   .meta({ id: "SubjectTotals", description: "Rolled-up studied time." });
 
