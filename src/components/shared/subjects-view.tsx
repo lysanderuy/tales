@@ -29,8 +29,8 @@ import {
 import { buildSubjectIndex } from "@/lib/today/subject-index";
 import { useToastStore } from "@/stores/toast.store";
 
-const wide = "col-span-12 min-[900px]:col-span-7";
-const narrow = "col-span-12 min-[900px]:sticky min-[900px]:top-[88px] min-[900px]:col-span-5";
+const wide = "col-span-24 min-[900px]:col-span-13";
+const narrow = "col-span-24 min-[900px]:sticky min-[900px]:top-[88px] min-[900px]:col-span-11";
 const mainClass = "mx-auto w-full max-w-[1200px] flex-1 px-6 pb-[72px] pt-8";
 
 export function SubjectsView() {
@@ -173,8 +173,8 @@ export function SubjectsView() {
           <StartControl />
         )}
       </div>
-      <div className="grid grid-cols-12 items-start gap-4" onKeyDown={onGridKeyDown}>
-        <Card className={cn(selected ? wide : "col-span-12")}>
+      <div className="grid grid-cols-24 items-start gap-4" onKeyDown={onGridKeyDown}>
+        <Card className={cn(selected ? wide : "col-span-24")}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-h2 font-semibold tracking-[-0.01em]">
               {messages.subjectsAllSubjects}
