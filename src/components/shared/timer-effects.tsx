@@ -8,6 +8,7 @@ import { currentSessionKeys } from "@/hooks/use-current-session";
 import { useHeartbeatSession } from "@/hooks/use-heartbeat-session";
 import { useSessionClock } from "@/hooks/use-session-clock";
 import { useSubjects } from "@/hooks/use-subjects";
+import { useTimerFavicon } from "@/hooks/use-timer-favicon";
 import { messages } from "@/lib/messages";
 import { clockOffset, tabTitle } from "@/lib/timer/clock";
 import { decideHeartbeat } from "@/lib/timer/heartbeat";
@@ -23,6 +24,7 @@ export function TimerEffects() {
   const queryClient = useQueryClient();
   const { mutate: sendHeartbeat } = useHeartbeatSession();
   useCountdownChime();
+  useTimerFavicon();
 
   const index = useMemo(() => buildSubjectIndex(subjects.data ?? []), [subjects.data]);
   const subjectName = session?.nodeId ? (index.get(session.nodeId)?.name ?? null) : null;
