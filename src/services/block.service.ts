@@ -4,10 +4,10 @@ import { asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { lockUser, owned } from "@/db/owned";
-import { blocks, events, outlineNodes, type Block } from "@/db/schema";
+import { blocks, events, outlineNodes, studySessions, type Block } from "@/db/schema";
 import { AppError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
-import { orderAfterMove, summarizePlanned } from "@/lib/plan/plan";
+import { keepsBlockLink, orderAfterMove, summarizePlanned } from "@/lib/plan/plan";
 import { progressByBlock, studySessionService } from "@/services/study-session.service";
 import type {
   BlockResponse,
@@ -218,6 +218,34 @@ export const blockService = {
         })
         .where(owned(blocks, userId, eq(blocks.id, id)));
 
+      if (patch.nodeId !== undefined && patch.nodeId !== row.nodeId) {
+        const newNodeId = patch.nodeId;
+        const outline = await tx
+          .select({
+            id: outlineNodes.id,
+            parentId: outlineNodes.parentId,
+            name: outlineNodes.name,
+            position: outlineNodes.position,
+          })
+          .from(outlineNodes)
+          .where(owned(outlineNodes, userId));
+        const linked = await tx
+          .select({ id: studySessions.id, nodeId: studySessions.nodeId })
+          .from(studySessions)
+          .where(owned(studySessions, userId, eq(studySessions.blockId, id)));
+        const detach = linked
+          .filter(
+            (session) => !session.nodeId || !keepsBlockLink(outline, newNodeId, session.nodeId),
+          )
+          .map((session) => session.id);
+        if (detach.length > 0) {
+          await tx
+            .update(studySessions)
+            .set({ blockId: null })
+            .where(owned(studySessions, userId, inArray(studySessions.id, detach)));
+        }
+      }
+
       if (movesDay || patch.position !== undefined) {
         const moved = { ...row, position, date: targetDate };
         const ids = orderAfterMove(
@@ -242,6 +270,7 @@ export const blockService = {
 
   async reorder(userId: string, input: ReorderBlocksInput): Promise<BlockResponse[]> {
     return db.transaction(async (tx) => {
+      await lockUser(tx, userId);
       const day = await loadDay(tx, userId, input.date);
       const current = new Set(day.map((row) => row.id));
       if (
@@ -257,6 +286,7 @@ export const blockService = {
 
   async remove(userId: string, id: string): Promise<void> {
     await db.transaction(async (tx) => {
+      await lockUser(tx, userId);
       const [deleted] = await tx
         .delete(blocks)
         .where(owned(blocks, userId, eq(blocks.id, id)))
