@@ -1,20 +1,22 @@
-# starter-stack
+# Tales
 
-Reusable full-stack boilerplate: Next.js 16 + Supabase + Drizzle + Zod.
+A calm study planner and timer for medtech board review. Product requirements and copy rules live in [`docs/tales_prd.md`](docs/tales_prd.md).
 
-| Layer         | Tech                                                              |
-| ------------- | ----------------------------------------------------------------- |
-| Frontend      | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4 |
-| Database      | Supabase (PostgreSQL)                                             |
-| Auth          | Supabase Auth (`@supabase/ssr`, cookie-based sessions)            |
-| ORM           | Drizzle ORM + drizzle-kit migrations                              |
-| Validation    | Zod v4                                                            |
-| Server state  | TanStack Query v5 (API data: caching, mutations)                  |
-| Client state  | Zustand (UI-only state: modals, sidebar, filters)                 |
-| API docs      | OpenAPI 3.1 (`zod-openapi`) + Scalar (`/api/docs`)                |
-| Testing       | Vitest (unit tests, colocated `*.test.ts`)                        |
-| Code quality  | ESLint + Prettier + Husky/lint-staged pre-commit                  |
-| CI            | GitHub Actions — typecheck/lint/test + PR description bot         |
+Stack: Next.js 16 + Supabase + Drizzle + Zod.
+
+| Layer        | Tech                                                              |
+| ------------ | ----------------------------------------------------------------- |
+| Frontend     | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4 |
+| Database     | Supabase (PostgreSQL)                                             |
+| Auth         | Supabase Auth (`@supabase/ssr`, cookie-based sessions)            |
+| ORM          | Drizzle ORM + drizzle-kit migrations                              |
+| Validation   | Zod v4                                                            |
+| Server state | TanStack Query v5 (API data: caching, mutations)                  |
+| Client state | Zustand (UI-only state: modals, sidebar, filters)                 |
+| API docs     | OpenAPI 3.1 (`zod-openapi`) + Scalar (`/api/docs`)                |
+| Testing      | Vitest (unit tests, colocated `*.test.ts`)                        |
+| Code quality | ESLint + Prettier + Husky/lint-staged pre-commit                  |
+| CI           | GitHub Actions — typecheck/lint/test + PR description bot         |
 
 ## Quick start
 
@@ -42,8 +44,7 @@ Reusable full-stack boilerplate: Next.js 16 + Supabase + Drizzle + Zod.
    - **Email**: confirmation stays on. Confirm and recovery emails use
      Supabase's built-in sender (rate-limited, ~2/hour).
 
-4. Apply the bundled example schema — or remove it first (see
-   [Removing the example](#removing-the-profiles-example)):
+4. Apply the migrations:
 
    ```bash
    npm run db:migrate   # applies migrations + runs the RLS guardrail
@@ -93,7 +94,7 @@ npm test         # run once
 npm run test:watch
 ```
 
-- Covers only pure logic — Zod validators (`src/validators`) and framework-free helpers (`src/lib/api/response.ts`).
+- Covers only pure logic — Zod validators (`src/validators`) and framework-free helpers under `src/lib`.
 - Services/routes touch Drizzle/Supabase and are untested on purpose: no dedicated test database, and mocking Drizzle would give false confidence. Prefer a local Supabase CLI instance over mocks if that changes.
 
 ## Code quality
@@ -125,7 +126,7 @@ Tests are excluded on purpose — kept fast locally; they run in CI instead.
 src/
 ├── app/                  # Routes, layouts — frontend only
 │   ├── (auth)/           # Login, signup, forgot/reset password (route group)
-│   ├── (app)/            # Signed-in app shell and Today (route group)
+│   ├── (app)/            # Signed-in app shell: today, plan, subjects (route group)
 │   ├── error.tsx         # Error boundary (wire Sentry etc. here)
 │   ├── global-error.tsx  # Root-layout error fallback (self-contained)
 │   ├── not-found.tsx     # 404
@@ -133,7 +134,8 @@ src/
 │       ├── auth/         # callback (code exchange) + logout
 │       ├── docs/         # Scalar interactive API reference UI
 │       ├── openapi.json/ # generated OpenAPI 3.1 spec (raw JSON, no envelope)
-│       └── profile/      # example: GET/PATCH /api/profile
+│       └── …             # account, blocks, daily-line(s), daily-sets, events, picker,
+│                         # plan, profile, reports, sessions, subjects, templates, today
 ├── components/
 │   ├── ui/               # Generic primitives (buttons, inputs, ...)
 │   └── shared/           # Composed, app-specific components
@@ -143,6 +145,9 @@ src/
 │   ├── api/              # client.ts (fetch wrapper) + response.ts (envelope helpers) + openapi.ts (spec builder)
 │   ├── query/            # QueryClient provider (wired in app/layout.tsx)
 │   ├── supabase/         # client.ts (browser), server.ts (RSC/routes), proxy.ts (session refresh)
+│   ├── plan/ timer/ today/ picker/ reports/ subjects/ …   # framework-free domain helpers (unit-tested)
+│   ├── copy/             # banned-words check for on-screen copy
+│   ├── messages.ts       # all user-facing strings
 │   └── env.ts            # Zod-validated env vars (server only, lazy)
 ├── services/             # Business logic (*.service.ts)
 ├── validators/           # Zod schemas (*.validator.ts) — input source of truth
@@ -157,8 +162,8 @@ src/
 Outside `src/`: `scripts/` (RLS guardrail + auth debug), `drizzle.config.ts`
 (schema path, migration dir, `DIRECT_URL`).
 
-The `profiles` table + validator + service + route + hook are a working
-reference implementation of the layering — replace per project.
+The `profiles` slice (table, validator, service, route, hook) is the
+smallest end-to-end example of the layering.
 
 ## Auth
 
@@ -178,8 +183,9 @@ protected `/today` → logout.
   its own cookies) and skip the service/`ApiResponse` pattern — they're
   redirect-driven browser navigations, not JSON API calls. App data still
   always goes through `/api` with the full service/`ApiResponse` pattern.
-- **Signup → profile**: a Postgres trigger (`0001_auth-trigger-and-rls.sql`)
-  auto-creates a `profiles` row for each new auth user.
+- **Signup → profile**: a Postgres trigger (`handle_new_user`, last defined in
+  `0006_profile-signup-trigger.sql`) auto-creates a `profiles` row for each new
+  auth user from the signup metadata (display name, time zone).
 
 ## Security model
 
@@ -208,26 +214,6 @@ ALTER TABLE "things" ENABLE ROW LEVEL SECURITY;
 
 For SQL that can't be derived from the TS schema (triggers, RLS, functions),
 create a custom migration: `npx drizzle-kit generate --custom --name=...`.
-
-### Removing the profiles example
-
-Auth does not depend on `profiles` — identity lives in `auth.users` + cookies.
-To start a project with a clean schema, delete the example slice:
-
-```
-src/db/schema/profiles.ts            # + remove its export from schema/index.ts
-src/db/migrations/0000_*.sql, 0001_*.sql, 0002_*.sql, meta/   # keep the migrations dir
-src/validators/profile.validator.ts
-src/services/profile.service.ts
-src/app/api/profile/
-src/hooks/use-profile.ts
-```
-
-Then:
-
-- Remove the `/api/profile` path entry and `profileResponseSchema` from `src/lib/api/openapi.ts` — otherwise the generated spec references a deleted endpoint.
-- Only delete migrations never applied to a live database; otherwise drop the objects first (`DROP TABLE profiles; DROP FUNCTION public.handle_new_user CASCADE;`) or reset the database.
-- To bring a companion table back later, reuse the pattern in `0001_auth-trigger-and-rls.sql`: FK to `auth.users(id) ON DELETE CASCADE`, RLS enabled, `AFTER INSERT ON auth.users` trigger.
 
 ## Adding a new resource
 
