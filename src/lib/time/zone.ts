@@ -1,3 +1,5 @@
+export const DEFAULT_TIME_ZONE = "Asia/Manila";
+
 const DATE_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 const formatters = new Map<string, Intl.DateTimeFormat>();

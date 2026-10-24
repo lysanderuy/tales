@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { profiles } from "@/db/schema";
 import { daysToBoards } from "@/lib/exam/days-to-boards";
 import { rootIdMap } from "@/lib/outline/tree";
-import { addDays, formatClock, localDateKey } from "@/lib/time/zone";
+import { addDays, DEFAULT_TIME_ZONE, formatClock, localDateKey } from "@/lib/time/zone";
 import { assembleToday, pickNextUp, type TodayRecord } from "@/lib/today/today";
 import { blockService } from "@/services/block.service";
 import { dailyLineService } from "@/services/daily-line.service";
@@ -16,8 +16,6 @@ import { studySessionService, type DayNodeTotal } from "@/services/study-session
 import type { SessionResponse } from "@/validators/study-session.validator";
 import type { TodaysLine } from "@/validators/daily-set.validator";
 import type { NextUpResponse, TodayResponse } from "@/validators/today.validator";
-
-const DEFAULT_TIME_ZONE = "Asia/Manila";
 
 export interface UserClock {
   timeZone: string;

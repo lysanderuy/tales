@@ -18,7 +18,13 @@ import { AppError, mapDbError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
 import { descendantIds, pathOf, type OutlineRow } from "@/lib/outline/tree";
 import { keepsBlockLink, playMinutes } from "@/lib/plan/plan";
-import { addDays, dayRangeUtc, formatClock, localDateKey } from "@/lib/time/zone";
+import {
+  addDays,
+  DEFAULT_TIME_ZONE,
+  dayRangeUtc,
+  formatClock,
+  localDateKey,
+} from "@/lib/time/zone";
 import {
   activeSeconds,
   clampStopTime,
@@ -40,8 +46,6 @@ import type {
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Executor = Tx | typeof db;
-
-const DEFAULT_TIME_ZONE = "Asia/Manila";
 
 export interface NodeTotals {
   seconds: number;

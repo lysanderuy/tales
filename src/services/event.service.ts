@@ -16,6 +16,7 @@ import {
 import { AppError } from "@/lib/api/response";
 import { eventState, markableNodeIds, type EventState } from "@/lib/events/state";
 import { messages } from "@/lib/messages";
+import { DEFAULT_TIME_ZONE } from "@/lib/time/zone";
 import { progressByBlock } from "@/services/study-session.service";
 import type {
   CloseEventInput,
@@ -30,7 +31,6 @@ import type {
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Executor = Tx | typeof db;
 
-const DEFAULT_TIME_ZONE = "Asia/Manila";
 const MS_PER_DAY = 86_400_000;
 
 export interface NextEvent {
