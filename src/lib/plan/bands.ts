@@ -1,4 +1,15 @@
+import { messages } from "@/lib/messages";
+import { formatClock } from "@/lib/time/zone";
+import type { SessionResponse } from "@/validators/study-session.validator";
+
 export type Band = "morning" | "afternoon" | "evening" | "unscheduled";
+
+export const BAND_LABELS: Record<Band, string> = {
+  morning: messages.planBandMorning,
+  afternoon: messages.planBandAfternoon,
+  evening: messages.planBandEvening,
+  unscheduled: messages.planBandUnscheduled,
+};
 
 export const BAND_ORDER: readonly Band[] = ["morning", "afternoon", "evening", "unscheduled"];
 
@@ -47,4 +58,12 @@ export function groupIntoBands<T>(
 
 export function startsOffPlan(plannedClock: string, actualClock: string): boolean {
   return Math.abs(clockMinutes(actualClock) - clockMinutes(plannedClock)) >= OFF_PLAN_MINUTES;
+}
+
+export function firstStartClock(
+  sessions: readonly SessionResponse[] | undefined,
+  timeZone: string,
+): string | null {
+  const first = sessions?.[0];
+  return first ? formatClock(new Date(first.startedAt), timeZone) : null;
 }

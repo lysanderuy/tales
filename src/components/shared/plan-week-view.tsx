@@ -30,7 +30,7 @@ import { useUpdateBlock } from "@/hooks/use-update-block";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
 import { dayOfMonth, formatDayTitle, formatWeekdayShort } from "@/lib/plan/dates";
-import { bandOf, groupIntoBands, type Band } from "@/lib/plan/bands";
+import { BAND_LABELS, bandOf, firstStartClock, groupIntoBands, type Band } from "@/lib/plan/bands";
 import { formatClock, localDateKey } from "@/lib/time/zone";
 import type { BlockResponse } from "@/validators/block.validator";
 import type { EventSummaryResponse } from "@/validators/event.validator";
@@ -54,21 +54,6 @@ type PlanWeekViewProps = {
 
 type ColumnItem =
   { kind: "block"; block: BlockResponse } | { kind: "ghost"; record: SessionResponse };
-
-const BAND_LABELS: Record<Band, string> = {
-  morning: messages.planBandMorning,
-  afternoon: messages.planBandAfternoon,
-  evening: messages.planBandEvening,
-  unscheduled: messages.planBandUnscheduled,
-};
-
-function firstStartClock(
-  sessions: readonly SessionResponse[] | undefined,
-  timeZone: string,
-): string | null {
-  const first = sessions?.[0];
-  return first ? formatClock(new Date(first.startedAt), timeZone) : null;
-}
 
 type ColumnProps = {
   date: string;

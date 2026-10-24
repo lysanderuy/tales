@@ -143,7 +143,6 @@ export const messages = {
   planStudyOther: "Planned study",
   planEvent: "Event",
   planEmptyDay: "Nothing planned for this day.",
-  planAlsoStudied: "Also studied",
   planOpen: "Open",
   planLoadPartial: "Some of this plan could not be loaded.",
   planMinutes: (minutes: string) => `${minutes} min`,
