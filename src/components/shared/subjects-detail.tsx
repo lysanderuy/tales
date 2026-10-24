@@ -1,6 +1,6 @@
 "use client";
 
-import { ArchiveIcon, CloseIcon, PlayIcon } from "@/components/shared/icons";
+import { ArchiveIcon, CloseIcon } from "@/components/shared/icons";
 import { SubjectsDetailMenu } from "@/components/shared/subjects-detail-menu";
 import { SubjectsStudyLog } from "@/components/shared/subjects-study-log";
 import { SubjectsWeightField } from "@/components/shared/subjects-weight-field";
@@ -9,15 +9,11 @@ import { Card } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { IconButton } from "@/components/ui/icon-button";
 import { Swatch } from "@/components/ui/swatch";
-import { useOpenFocus } from "@/hooks/use-open-focus";
 import { useProfile } from "@/hooks/use-profile";
-import { useSessionClock } from "@/hooks/use-session-clock";
-import { useStartSession } from "@/hooks/use-start-session";
 import { useSubjectSessions } from "@/hooks/use-subject-sessions";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
 import type { ChildrenMap, SubjectNode } from "@/lib/subjects/tree";
-import { unlockAudio } from "@/lib/sound/chime";
 import { formatSeconds, splitTotal } from "@/lib/today/format";
 import { formatPath, type SubjectIndex } from "@/lib/today/subject-index";
 
@@ -87,9 +83,6 @@ export function SubjectsDetail({
 }: SubjectsDetailProps) {
   const sessions = useSubjectSessions(node.id);
   const profile = useProfile();
-  const { session } = useSessionClock();
-  const startSession = useStartSession();
-  const openFocus = useOpenFocus();
 
   const info = index.get(node.id);
   const color = info?.color ?? "var(--border)";
@@ -99,15 +92,10 @@ export function SubjectsDetail({
   const dim = node.effectivelyArchived;
   const showSplit = own > 0 && total - own > 0;
 
-  const start = () => {
-    unlockAudio();
-    startSession.mutate({ nodeId: node.id, startedFrom: "free" }, { onSuccess: openFocus });
-  };
-
   return (
     <Card className={className}>
-      <div className="mb-5 flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="mb-5">
+        <div className="flex items-start justify-between gap-3">
           <h2
             className={cn(
               "flex min-w-0 items-center gap-2 text-h2 font-semibold tracking-[-0.01em]",
@@ -119,43 +107,32 @@ export function SubjectsDetail({
               {node.name}
             </span>
           </h2>
-          {parent ? (
-            <button
-              type="button"
-              title={formatPath(info?.ancestors ?? [])}
-              onClick={() => onSelect(parent.id)}
-              className="-mx-0.5 mt-0.5 block max-w-full truncate rounded-[6px] px-0.5 text-left text-caption text-text-faint hover:bg-fill hover:text-text-soft"
-            >
-              {messages.subjectsIn(parent.name)}
-            </button>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 gap-1.5">
-          {!dim && !session ? (
-            <IconButton
-              size="sm"
-              variant="solid"
-              label={messages.todayStart}
-              disabled={startSession.isPending}
-              onClick={start}
-            >
-              <PlayIcon />
+          <div className="flex shrink-0 gap-1.5">
+            <SubjectsDetailMenu
+              node={node}
+              topicCount={topicCount}
+              childMap={childMap}
+              index={index}
+              onRename={onRename}
+              onMove={(parentId) => actions.move(node, parentId)}
+              onArchive={(archived) => actions.setArchived(node, archived)}
+              onDelete={() => actions.remove(node)}
+            />
+            <IconButton size="sm" label={messages.subjectsClose} onClick={onClose}>
+              <CloseIcon />
             </IconButton>
-          ) : null}
-          <SubjectsDetailMenu
-            node={node}
-            topicCount={topicCount}
-            childMap={childMap}
-            index={index}
-            onRename={onRename}
-            onMove={(parentId) => actions.move(node, parentId)}
-            onArchive={(archived) => actions.setArchived(node, archived)}
-            onDelete={() => actions.remove(node)}
-          />
-          <IconButton size="sm" label={messages.subjectsClose} onClick={onClose}>
-            <CloseIcon />
-          </IconButton>
+          </div>
         </div>
+        {parent ? (
+          <button
+            type="button"
+            title={formatPath(info?.ancestors ?? [])}
+            onClick={() => onSelect(parent.id)}
+            className="-mx-0.5 mt-0.5 block max-w-full truncate rounded-[6px] px-0.5 text-left text-caption text-text-faint hover:bg-fill hover:text-text-soft"
+          >
+            {messages.subjectsIn(parent.name)}
+          </button>
+        ) : null}
       </div>
 
       {dim ? (
@@ -181,7 +158,17 @@ export function SubjectsDetail({
         </div>
       ) : null}
 
-      <Eyebrow as="div">{messages.subjectsAllTime}</Eyebrow>
+      {node.parentId !== null ? (
+        <SubjectsWeightField
+          key={`${node.id}:${node.examWeight}`}
+          value={node.examWeight}
+          onCommit={(value) => actions.setWeight(node, value)}
+        />
+      ) : null}
+
+      <Eyebrow as="div" className="mt-3">
+        {messages.subjectsAllTime}
+      </Eyebrow>
       <Total seconds={total} />
       <div>
         {total > 0 ? (
@@ -197,13 +184,6 @@ export function SubjectsDetail({
           </>
         ) : null}
       </div>
-      {node.parentId !== null ? (
-        <SubjectsWeightField
-          key={`${node.id}:${node.examWeight}`}
-          value={node.examWeight}
-          onCommit={(value) => actions.setWeight(node, value)}
-        />
-      ) : null}
 
       <SubjectsStudyLog
         records={sessions.data ?? []}

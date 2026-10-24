@@ -210,7 +210,7 @@ export const messages = {
   subjectsArchived: "Archived",
   subjectsArchivedWithParent: "Archived with its parent",
   subjectsArchivedNote: "Not shown in the Picker",
-  subjectsAllTime: "All time",
+  subjectsAllTime: "Time spent",
   subjectsNoTime: "No time yet",
   subjectsLast7Days: "Last 7 days",
   subjectsOnThisItem: "On this item",
