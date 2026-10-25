@@ -1,0 +1,2 @@
+ALTER TABLE "daily_lines" ADD COLUMN "reading_date" date;--> statement-breakpoint
+CREATE UNIQUE INDEX "daily_lines_set_reading_date_idx" ON "daily_lines" USING btree ("set_id","reading_date") WHERE "daily_lines"."reading_date" is not null;

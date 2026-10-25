@@ -9,6 +9,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -39,10 +40,14 @@ export const dailyLines = pgTable(
       .references(() => dailySets.id, { onDelete: "cascade" }),
     text: text("text").notNull(),
     position: integer("position").notNull(),
+    readingDate: date("reading_date", { mode: "string" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     index("daily_lines_set_position_idx").on(t.setId, t.position),
+    uniqueIndex("daily_lines_set_reading_date_idx")
+      .on(t.setId, t.readingDate)
+      .where(sql`${t.readingDate} is not null`),
     check("daily_lines_text_check", sql`char_length(${t.text}) between 1 and 500`),
   ],
 ).enableRLS();
