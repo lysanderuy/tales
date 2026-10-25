@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { CardHeader } from "@/components/shared/card-header";
 import {
+  PlanEventRow,
   PlanGhostRow,
   PlanRow,
   recordChoicesByBlock,
@@ -40,7 +41,10 @@ type PlanDayViewProps = {
   onPickDay: (date: string) => void;
 };
 
-type DayItem = { kind: "block"; block: BlockResponse } | { kind: "ghost"; record: SessionResponse };
+type DayItem =
+  | { kind: "block"; block: BlockResponse }
+  | { kind: "ghost"; record: SessionResponse }
+  | { kind: "event"; event: EventSummaryResponse };
 
 function studyTitle(date: string, today: string): string {
   const diff = dayDiff(today, date);
@@ -90,7 +94,11 @@ export function PlanDayView({
     return byBlock;
   }, [records]);
   const currentBand = useMemo(() => bandOf(formatClock(new Date(), timeZone)), [timeZone]);
+  const untimedEvents = dayEvents.filter((event) => event.time === null);
   const items: DayItem[] = [
+    ...dayEvents
+      .filter((event) => event.time !== null)
+      .map((event): DayItem => ({ kind: "event", event })),
     ...dayBlocks.map((block): DayItem => ({ kind: "block", block })),
     ...(past
       ? dayRecords
@@ -100,34 +108,33 @@ export function PlanDayView({
   ];
   const groups = groupIntoBands(
     items,
-    (item) =>
-      item.kind === "block"
+    (item) => {
+      if (item.kind === "event") return item.event.time;
+      return item.kind === "block"
         ? (item.block.timeOfDay ?? firstStartClock(sessionsByBlock.get(item.block.id), timeZone))
-        : formatClock(new Date(item.record.startedAt), timeZone),
-    (item) => (item.kind === "block" ? item.block.position : Number.MAX_SAFE_INTEGER),
+        : formatClock(new Date(item.record.startedAt), timeZone);
+    },
+    (item) => {
+      if (item.kind === "event") return -1;
+      return item.kind === "block" ? item.block.position : Number.MAX_SAFE_INTEGER;
+    },
   );
   const studied = past
     ? dayRecords.map((record) => ({ nodeId: record.nodeId, seconds: record.activeSeconds }))
     : null;
 
-  const empty = dayBlocks.length === 0;
+  const empty = dayBlocks.length === 0 && dayEvents.length === 0;
 
   return (
     <div className="grid grid-cols-12 items-start gap-4">
       <Card className="col-span-12 min-[900px]:col-span-8">
         <CardHeader title={studyTitle(date, today)} />
-        {dayEvents.length > 0 ? (
-          <div className="-mt-1 mb-4 flex flex-wrap items-center gap-2">
-            <Eyebrow>{messages.planEvent}</Eyebrow>
-            {dayEvents.map((event) => (
-              <span
-                key={event.id}
-                className="num rounded-full bg-fill px-3 py-1.5 text-small text-text-soft"
-              >
-                {event.time ? `${event.title} · ${event.time}` : event.title}
-              </span>
+        {untimedEvents.length > 0 ? (
+          <ul className="mb-5">
+            {untimedEvents.map((event) => (
+              <PlanEventRow key={event.id} event={event} lookup={lookup} />
             ))}
-          </div>
+          </ul>
         ) : null}
         {empty ? (
           <p className="py-1 text-ui text-text-faint">{messages.planEmptyDay}</p>
@@ -144,8 +151,11 @@ export function PlanDayView({
                 {BAND_LABELS[group.band]}
               </Eyebrow>
               <ul>
-                {group.items.map((item) =>
-                  item.kind === "block" ? (
+                {group.items.map((item) => {
+                  if (item.kind === "event") {
+                    return <PlanEventRow key={item.event.id} event={item.event} lookup={lookup} />;
+                  }
+                  return item.kind === "block" ? (
                     <PlanRow
                       key={item.block.id}
                       block={item.block}
@@ -171,8 +181,8 @@ export function PlanDayView({
                       timeZone={timeZone}
                       onOpenRecord={onOpenRecord}
                     />
-                  ),
-                )}
+                  );
+                })}
               </ul>
             </div>
           ))

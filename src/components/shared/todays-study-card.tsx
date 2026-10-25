@@ -7,7 +7,7 @@ import { PlayIcon } from "@/components/shared/icons";
 import { LogStudyDialog } from "@/components/shared/log-study-dialog";
 import { AddMenu } from "@/components/shared/plan-controls";
 import { PlanEditDialog } from "@/components/shared/plan-edit-dialog";
-import type { PlanLookup } from "@/components/shared/plan-row";
+import { PlanEventRow, type PlanLookup } from "@/components/shared/plan-row";
 import { RecordChooser, type RecordChoice } from "@/components/shared/record-chooser";
 import { EditRecordDialog } from "@/components/shared/edit-record-dialog";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Swatch } from "@/components/ui/swatch";
 import { useActiveSession, useSessionClock } from "@/hooks/use-session-clock";
 import { useOpenFocus } from "@/hooks/use-open-focus";
+import { usePlanEvents } from "@/hooks/use-plan-events";
 import { useProfile } from "@/hooks/use-profile";
 import { useStartBlock } from "@/hooks/use-start-block";
 import { useStartSession } from "@/hooks/use-start-session";
@@ -33,6 +34,7 @@ import {
   type SubjectIndex,
   type SubjectInfo,
 } from "@/lib/today/subject-index";
+import type { EventSummaryResponse } from "@/validators/event.validator";
 import type { TodayResponse } from "@/validators/today.validator";
 
 type TodayRow = TodayResponse["rows"][number];
@@ -96,6 +98,31 @@ function toRowView(row: TodayRow, index: SubjectIndex): RowView {
   };
 }
 
+type StudyEntry = { kind: "event"; event: EventSummaryResponse } | { kind: "view"; view: RowView };
+
+function withEvents(
+  views: readonly RowView[],
+  events: readonly EventSummaryResponse[],
+): StudyEntry[] {
+  const entries = views.map((view): StudyEntry => ({ kind: "view", view }));
+  const timed = events
+    .filter((event) => event.time !== null)
+    .sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
+  for (const event of timed) {
+    const at = entries.findIndex(
+      (entry) =>
+        entry.kind === "view" &&
+        entry.view.timeOfDay !== "" &&
+        entry.view.timeOfDay > (event.time ?? ""),
+    );
+    entries.splice(at === -1 ? entries.length : at, 0, { kind: "event", event });
+  }
+  const untimed = events
+    .filter((event) => event.time === null)
+    .map((event): StudyEntry => ({ kind: "event", event }));
+  return [...untimed, ...entries];
+}
+
 type StudyRowMainProps = {
   records: RecordChoice[];
   onOpen: (recordId: string, opener: HTMLElement | null) => void;
@@ -154,6 +181,7 @@ export function TodaysStudyCard({
   className,
 }: TodaysStudyCardProps) {
   const views = rows.map((row) => toRowView(row, index));
+  const todayEvents = usePlanEvents(todayDate, todayDate);
   const session = useActiveSession();
   const startBlock = useStartBlock();
   const startSession = useStartSession();
@@ -164,6 +192,8 @@ export function TodaysStudyCard({
   const [logging, setLogging] = useState<{ opener: HTMLElement } | null>(null);
   const profile = useProfile();
   const lookup = useMemo<PlanLookup>(() => ({ index, archived }), [index, archived]);
+
+  const entries = withEvents(views, todayEvents.data?.events ?? []);
 
   const play = (start: NonNullable<RowView["start"]>) => {
     unlockAudio();
@@ -186,11 +216,17 @@ export function TodaysStudyCard({
             />
           }
         />
-        {views.length === 0 ? (
+        {entries.length === 0 ? (
           <p className="py-1 text-ui text-text-faint">{messages.todayEmpty}</p>
         ) : (
           <ul>
-            {views.map((view) => {
+            {entries.map((entry) => {
+              if (entry.kind === "event") {
+                return (
+                  <PlanEventRow key={entry.event.id} event={entry.event} lookup={lookup} spacer />
+                );
+              }
+              const view = entry.view;
               const color = view.subject?.color ?? "var(--border)";
               const path = view.subject ? formatPath(view.subject.ancestors) : "";
               return (

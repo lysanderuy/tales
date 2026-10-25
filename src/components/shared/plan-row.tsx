@@ -20,6 +20,7 @@ import {
   type SubjectInfo,
 } from "@/lib/today/subject-index";
 import type { BlockResponse } from "@/validators/block.validator";
+import type { EventSummaryResponse } from "@/validators/event.validator";
 import type { SessionResponse } from "@/validators/study-session.validator";
 
 export type PlanLookup = {
@@ -40,6 +41,15 @@ export function lookupSubject(
     info: resolveSubject(lookup.index, nodeId, messages.todayUnknownSubject),
     archived: lookup.archived.has(nodeId),
   };
+}
+
+export function eventSubjects(
+  event: EventSummaryResponse,
+  lookup: PlanLookup,
+): { info: SubjectInfo; archived: boolean }[] {
+  return event.coverIds
+    .filter((nodeId) => lookup.index.has(nodeId))
+    .map((nodeId) => lookupSubject(lookup, nodeId));
 }
 
 export function blockProgressText(block: BlockResponse): string {
@@ -324,6 +334,44 @@ export function PlanGhostRow({ record, lookup, timeZone, onOpenRecord }: PlanGho
         </span>
         <span className={detailClass}>{formatSeconds(record.activeSeconds)}</span>
       </button>
+    </li>
+  );
+}
+
+type PlanEventRowProps = {
+  event: EventSummaryResponse;
+  lookup: PlanLookup;
+  spacer?: boolean;
+};
+
+export function PlanEventRow({ event, lookup, spacer }: PlanEventRowProps) {
+  const covered = eventSubjects(event, lookup)
+    .map(({ info }) => info.name)
+    .join(", ");
+
+  return (
+    <li className="py-1.5 first:pt-0">
+      <div className="-mx-2 flex items-center gap-3.5 rounded-row bg-fill px-2 py-2.5">
+        <span className="num w-11 shrink-0 text-small text-text-faint">{event.time ?? ""}</span>
+        <span
+          aria-hidden="true"
+          className="mx-[3.5px] w-[3px] shrink-0 self-stretch rounded-full bg-text-faint"
+        />
+        <span className="block min-w-0 flex-1">
+          <span title={event.title} className="block truncate font-semibold">
+            {event.title}
+          </span>
+          {covered ? (
+            <span title={covered} className="block truncate text-caption text-text-faint">
+              {covered}
+            </span>
+          ) : null}
+        </span>
+        <span className={detailClass}>
+          {event.state === "closed" ? messages.planEventClosed : ""}
+        </span>
+        {spacer ? <span aria-hidden="true" className="size-11 shrink-0" /> : null}
+      </div>
     </li>
   );
 }

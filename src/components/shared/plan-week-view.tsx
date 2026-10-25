@@ -14,7 +14,7 @@ import {
 } from "@dnd-kit/core";
 import { useMemo, useState } from "react";
 
-import { PlanCard, PlanGhostCard } from "@/components/shared/plan-card";
+import { PlanCard, PlanEventCard, PlanGhostCard } from "@/components/shared/plan-card";
 import {
   lookupSubject,
   recordChoicesByBlock,
@@ -53,7 +53,9 @@ type PlanWeekViewProps = {
 };
 
 type ColumnItem =
-  { kind: "block"; block: BlockResponse } | { kind: "ghost"; record: SessionResponse };
+  | { kind: "block"; block: BlockResponse }
+  | { kind: "ghost"; record: SessionResponse }
+  | { kind: "event"; event: EventSummaryResponse };
 
 type ColumnProps = {
   date: string;
@@ -88,18 +90,27 @@ function PlanWeekColumn({
 }: ColumnProps) {
   const drop = useDroppable({ id: date });
   const past = date <= today;
+  const untimedEvents = events.filter((event) => event.time === null);
   const items: ColumnItem[] = [
+    ...events
+      .filter((event) => event.time !== null)
+      .map((event): ColumnItem => ({ kind: "event", event })),
     ...blocks.map((block): ColumnItem => ({ kind: "block", block })),
     ...(past ? ghosts.map((record): ColumnItem => ({ kind: "ghost", record })) : []),
   ];
   const groups = groupIntoBands(
     items,
-    (item) =>
-      item.kind === "block"
+    (item) => {
+      if (item.kind === "event") return item.event.time;
+      return item.kind === "block"
         ? (item.block.timeOfDay ?? firstStartClock(sessionsByBlock.get(item.block.id), timeZone))
-        : formatClock(new Date(item.record.startedAt), timeZone),
-    // Sorted by time of day first, then position; ghosts follow blocks on a tie.
-    (item) => (item.kind === "block" ? item.block.position : Number.MAX_SAFE_INTEGER),
+        : formatClock(new Date(item.record.startedAt), timeZone);
+    },
+    // Sorted by time of day first, then position; events lead and ghosts follow blocks on a tie.
+    (item) => {
+      if (item.kind === "event") return -1;
+      return item.kind === "block" ? item.block.position : Number.MAX_SAFE_INTEGER;
+    },
   );
 
   return (
@@ -129,13 +140,8 @@ function PlanWeekColumn({
           </span>
         </button>
       </div>
-      {events.map((event) => (
-        <span
-          key={event.id}
-          className="num mb-2 block truncate whitespace-nowrap rounded-full bg-fill px-2.5 py-1 text-caption text-text-soft"
-        >
-          {event.time ? `${event.title} · ${event.time}` : event.title}
-        </span>
+      {untimedEvents.map((event) => (
+        <PlanEventCard key={event.id} event={event} lookup={lookup} />
       ))}
       {groups.map((group) => (
         <div key={group.band}>
@@ -147,8 +153,11 @@ function PlanWeekColumn({
           >
             {BAND_LABELS[group.band]}
           </Eyebrow>
-          {group.items.map((item) =>
-            item.kind === "block" ? (
+          {group.items.map((item) => {
+            if (item.kind === "event") {
+              return <PlanEventCard key={item.event.id} event={item.event} lookup={lookup} />;
+            }
+            return item.kind === "block" ? (
               <PlanCard
                 key={item.block.id}
                 block={item.block}
@@ -169,8 +178,8 @@ function PlanWeekColumn({
                 timeZone={timeZone}
                 onOpenRecord={onOpenRecord}
               />
-            ),
-          )}
+            );
+          })}
         </div>
       ))}
     </div>

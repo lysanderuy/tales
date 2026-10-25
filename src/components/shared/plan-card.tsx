@@ -6,6 +6,7 @@ import {
   ArchivedTag,
   RecordProgress,
   blockProgressText,
+  eventSubjects,
   lookupSubject,
   type OpenRecord,
   type PlanLookup,
@@ -19,6 +20,7 @@ import { progressFill } from "@/lib/plan/summary";
 import { formatClock } from "@/lib/time/zone";
 import { formatSeconds } from "@/lib/today/format";
 import type { BlockResponse } from "@/validators/block.validator";
+import type { EventSummaryResponse } from "@/validators/event.validator";
 import type { SessionResponse } from "@/validators/study-session.validator";
 
 type PlanCardProps = {
@@ -181,5 +183,50 @@ export function PlanGhostCard({ record, lookup, timeZone, onOpenRecord }: PlanGh
         {formatSeconds(record.activeSeconds)}
       </span>
     </button>
+  );
+}
+
+const MAX_EVENT_DOTS = 3;
+
+type PlanEventCardProps = {
+  event: EventSummaryResponse;
+  lookup: PlanLookup;
+};
+
+export function PlanEventCard({ event, lookup }: PlanEventCardProps) {
+  const dots = eventSubjects(event, lookup).slice(0, MAX_EVENT_DOTS);
+
+  return (
+    <div className="mb-2 flex w-full gap-2.5 rounded-row bg-fill p-2.5">
+      <span
+        aria-hidden="true"
+        className="w-[3px] shrink-0 self-stretch rounded-full bg-text-soft"
+      />
+      <div className="min-w-0 flex-1">
+        <span
+          title={event.title}
+          className="block text-caption font-semibold leading-[1.3] [overflow-wrap:anywhere]"
+        >
+          {event.title}
+        </span>
+        {event.time || dots.length > 0 ? (
+          <span className="num mt-1 flex items-center gap-[7px] text-caption text-text-faint">
+            {event.time}
+            {dots.map(({ info, archived }, position) => (
+              <Swatch
+                key={position}
+                color={info.color}
+                className={cn("size-[9px]", archived && "opacity-60 grayscale")}
+              />
+            ))}
+          </span>
+        ) : null}
+        {event.state === "closed" ? (
+          <span className="num mt-2 block text-caption text-text-soft">
+            {messages.planEventClosed}
+          </span>
+        ) : null}
+      </div>
+    </div>
   );
 }
