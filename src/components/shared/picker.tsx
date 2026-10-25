@@ -35,6 +35,7 @@ const surfaceClass =
   "fixed z-[var(--z-float)] overflow-hidden rounded-[var(--radius-picker)] border border-border bg-surface";
 
 type PickerProps = {
+  id?: string;
   anchor: HTMLElement | null;
   selected: PickerSelection;
   onPick: (nodeId: string, blockId: string | null) => void;
@@ -56,7 +57,7 @@ function useViewport(): Viewport {
   return viewport;
 }
 
-export function Picker({ anchor, selected, onPick, onClose, hidePlanned }: PickerProps) {
+export function Picker({ id, anchor, selected, onPick, onClose, hidePlanned }: PickerProps) {
   const [query, setQuery] = useState("");
   const [sideId, setSideId] = useState<string | null>(null);
   const viewport = useViewport();
@@ -224,6 +225,7 @@ export function Picker({ anchor, selected, onPick, onClose, hidePlanned }: Picke
   return createPortal(
     <div ref={rootRef} onKeyDown={onKeyDown}>
       <div
+        id={id}
         role="dialog"
         aria-label={messages.todayWhatStudying}
         data-picker-scope=""

@@ -9,7 +9,15 @@ type DialogShellProps = {
   children: (onOverlayChange: (open: boolean) => void) => ReactNode;
 };
 
-const FOCUSABLE = "button:not(:disabled), input:not(:disabled), textarea:not(:disabled)";
+const FOCUSABLE = [
+  "a[href]",
+  "button:not(:disabled)",
+  "input:not(:disabled):not([type=hidden])",
+  "select:not(:disabled)",
+  "textarea:not(:disabled)",
+  '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable]:not([contenteditable="false"])',
+].join(", ");
 
 export function DialogShell({ label, opener, onClose, children }: DialogShellProps) {
   const dialogRef = useRef<HTMLDivElement>(null);

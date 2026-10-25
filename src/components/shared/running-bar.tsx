@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 
 import { PauseIcon, PlayIcon, StopIcon } from "@/components/shared/icons";
 import { Picker } from "@/components/shared/picker";
@@ -28,6 +28,7 @@ export function RunningBar({ session, subjectName }: RunningBarProps) {
   const stop = useStopSession();
   const pickSubject = usePickSubject(session.id);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerId = useId();
   const [nameButton, setNameButton] = useState<HTMLButtonElement | null>(null);
   const closePicker = useCallback(() => setPickerOpen(false), []);
   const busy = pause.isPending || resume.isPending || stop.isPending;
@@ -63,6 +64,7 @@ export function RunningBar({ session, subjectName }: RunningBarProps) {
         ref={setNameButton}
         type="button"
         aria-haspopup="dialog"
+        aria-controls={pickerOpen ? pickerId : undefined}
         aria-expanded={pickerOpen}
         onClick={() => setPickerOpen((value) => !value)}
         title={subjectName ?? undefined}
@@ -72,6 +74,7 @@ export function RunningBar({ session, subjectName }: RunningBarProps) {
       </button>
       {pickerOpen ? (
         <Picker
+          id={pickerId}
           anchor={nameButton}
           selected={{ nodeId: session.nodeId, blockId: session.blockId }}
           onPick={pickSubject}
