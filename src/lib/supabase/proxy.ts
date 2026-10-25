@@ -25,11 +25,10 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // IMPORTANT: do not run code between createServerClient and auth.getUser() —
-  // it can cause random logouts. getUser() revalidates the token server-side.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // IMPORTANT: do not run code between createServerClient and auth.getClaims() —
+  // it can cause random logouts. getClaims() verifies the JWT locally and refreshes near expiry.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
 
   const protectedPrefixes = [
     "/today",

@@ -5,11 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function SubjectsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
 
-  if (!user) redirect("/login");
+  if (!data?.claims) redirect("/login");
 
   return <SubjectsView />;
 }
