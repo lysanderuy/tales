@@ -8,8 +8,13 @@ export async function POST(request: Request) {
   try {
     const user = await requireUser();
 
-    const length = Number(request.headers.get("content-length"));
-    if (length > AVATAR_MAX_BYTES + AVATAR_REQUEST_OVERHEAD_BYTES) {
+    const header = request.headers.get("content-length");
+    const length = header === null ? NaN : Number(header);
+    if (
+      !Number.isFinite(length) ||
+      length <= 0 ||
+      length > AVATAR_MAX_BYTES + AVATAR_REQUEST_OVERHEAD_BYTES
+    ) {
       throw new AppError(413, messages.avatarTooLarge);
     }
 
