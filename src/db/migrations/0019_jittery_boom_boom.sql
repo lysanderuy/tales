@@ -1,0 +1,1 @@
+ALTER TABLE "events" ALTER COLUMN "type" DROP NOT NULL;

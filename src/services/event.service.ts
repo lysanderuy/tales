@@ -17,7 +17,7 @@ import { AppError } from "@/lib/api/response";
 import { eventState, markableNodeIds, type EventState } from "@/lib/events/state";
 import { messages } from "@/lib/messages";
 import { DEFAULT_TIME_ZONE } from "@/lib/time/zone";
-import { progressByBlock } from "@/services/study-session.service";
+import { progressByBlock, sessionsByBlock } from "@/services/study-session.service";
 import type {
   CloseEventInput,
   CreateEventInput,
@@ -144,11 +144,11 @@ async function loadDetail(
       .where(owned(blocks, userId, eq(blocks.eventId, id)))
       .orderBy(asc(blocks.date), asc(blocks.position), asc(blocks.createdAt), asc(blocks.id)),
   ]);
-  const progress = await progressByBlock(
-    executor,
-    userId,
-    linked.map((block) => block.id),
-  );
+  const blockIds = linked.map((block) => block.id);
+  const [progress, sessions] = await Promise.all([
+    progressByBlock(executor, userId, blockIds),
+    sessionsByBlock(executor, userId, blockIds),
+  ]);
 
   const secondsByNode = new Map<string, number>();
   for (const block of linked) {
@@ -169,6 +169,7 @@ async function loadDetail(
       progressSeconds: progress.get(block.id) ?? 0,
     })),
     sessionSecondsByNode: [...secondsByNode].map(([nodeId, seconds]) => ({ nodeId, seconds })),
+    sessions,
     marks,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -230,7 +231,7 @@ export const eventService = {
         .values({
           userId,
           title: input.title,
-          type: input.type,
+          type: input.type ?? null,
           date: input.date,
           time: input.time ?? null,
           note: input.note ?? null,

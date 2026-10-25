@@ -13,8 +13,13 @@ const id2 = "6a8d0d55-1c8b-4e2a-9c3d-7e6b1a2f4d91";
 describe("createEventSchema", () => {
   const base = { title: "Preboard 1", type: "preboard", date: "2026-03-02" };
 
-  it("needs only title, type and date", () => {
+  it("needs only title and date", () => {
+    expect(createEventSchema.safeParse({ title: base.title, date: base.date }).success).toBe(true);
+  });
+  it("lets type be omitted or null but not unknown", () => {
     expect(createEventSchema.safeParse(base).success).toBe(true);
+    expect(createEventSchema.safeParse({ ...base, type: null }).success).toBe(true);
+    expect(createEventSchema.safeParse({ ...base, type: "quiz" }).success).toBe(false);
   });
   it("accepts time, covers and note", () => {
     expect(

@@ -210,6 +210,58 @@ export async function progressByBlock(
   return progress;
 }
 
+export interface FinishedSession {
+  id: string;
+  nodeId: string;
+  startedAt: string;
+  endedAt: string;
+  seconds: number;
+}
+
+export async function sessionsByBlock(
+  executor: Executor,
+  userId: string,
+  blockIds: string[],
+): Promise<FinishedSession[]> {
+  if (blockIds.length === 0) return [];
+  const ids = sql.join(
+    blockIds.map((id) => sql`${id}`),
+    sql`, `,
+  );
+  const rows = await executor.execute<{
+    id: string;
+    node_id: string;
+    started_at: Date | string;
+    ended_at: Date | string;
+    seconds: string;
+  }>(sql`
+    select
+      s.id,
+      coalesce(s.node_id, b.node_id) as node_id,
+      s.started_at,
+      s.ended_at,
+      greatest(extract(epoch from (s.ended_at - s.started_at)) - coalesce(p.paused_seconds, 0), 0) as seconds
+    from study_sessions s
+    join blocks b on b.id = s.block_id and b.user_id = s.user_id
+    left join lateral (
+      select sum(extract(epoch from (coalesce(sp.resumed_at, s.ended_at) - sp.paused_at))) as paused_seconds
+      from session_pauses sp
+      where sp.session_id = s.id and sp.user_id = s.user_id
+    ) p on true
+    where s.user_id = ${userId}
+      and s.ended_at is not null
+      and s.block_id in (${ids})
+    order by s.started_at desc, s.id desc
+  `);
+  return rows.map((row) => ({
+    id: row.id,
+    nodeId: row.node_id,
+    startedAt: new Date(row.started_at).toISOString(),
+    endedAt: new Date(row.ended_at).toISOString(),
+    seconds: Number(row.seconds),
+  }));
+}
+
 async function loadOutlineRows(executor: Executor, userId: string): Promise<OutlineRow[]> {
   return executor
     .select({

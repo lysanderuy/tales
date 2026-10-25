@@ -58,7 +58,7 @@ const stateSchema = z.enum(["upcoming", "ready_to_close", "closed"]).meta({
 
 export const createEventSchema = z.object({
   title: titleSchema,
-  type: typeSchema,
+  type: typeSchema.nullable().optional(),
   date: dateKeySchema,
   time: clockSchema.nullable().optional(),
   coverIds: coverIdsSchema.optional(),
@@ -70,7 +70,7 @@ export type CreateEventInput = z.infer<typeof createEventSchema>;
 export const updateEventSchema = z
   .object({
     title: titleSchema.optional(),
-    type: typeSchema.optional(),
+    type: typeSchema.nullable().optional(),
     date: dateKeySchema.optional(),
     time: clockSchema.nullable().optional(),
     coverIds: coverIdsSchema.optional().meta({
@@ -117,7 +117,7 @@ export type ListEventsQuery = z.infer<typeof listEventsQuerySchema>;
 const eventBaseShape = {
   id: idSchema,
   title: z.string(),
-  type: typeSchema,
+  type: typeSchema.nullable(),
   date: dateKeySchema,
   time: clockSchema.nullable(),
   state: stateSchema,
@@ -162,10 +162,26 @@ export const eventDetailResponseSchema = z
     sessionSecondsByNode: z
       .array(z.object({ nodeId: nodeIdSchema, seconds: z.number() }))
       .meta({ description: "Time studied through the planned items, by Subject or Topic." }),
+    sessions: z
+      .array(
+        z.object({
+          id: idSchema.meta({ description: "Study session ID." }),
+          nodeId: nodeIdSchema,
+          startedAt: z.string().datetime(),
+          endedAt: z.string().datetime(),
+          seconds: z.number().meta({ description: "Time studied, excluding paused time." }),
+        }),
+      )
+      .meta({
+        description: "Finished study sessions through the planned items, newest first.",
+      }),
     marks: z.array(z.object({ nodeId: nodeIdSchema, mark: markSchema })),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   })
-  .meta({ id: "Event", description: "One event with its covers, planned items, note and marks." });
+  .meta({
+    id: "Event",
+    description: "One event with its covers, planned items, sessions, note and marks.",
+  });
 
 export type EventDetailResponse = z.infer<typeof eventDetailResponseSchema>;

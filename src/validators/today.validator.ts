@@ -95,7 +95,7 @@ const nextEventSchema = z
   .object({
     id: idSchema,
     title: z.string(),
-    type: z.enum(["mock_board", "preboard", "subject_exam", "review_center_exam"]),
+    type: z.enum(["mock_board", "preboard", "subject_exam", "review_center_exam"]).nullable(),
     date: dateKeySchema,
     time: clockSchema.nullable(),
     daysAway: z.number().int().meta({ description: "Whole days from today. 0 means today." }),

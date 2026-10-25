@@ -34,7 +34,7 @@ export const events = pgTable(
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
-    type: eventType("type").notNull(),
+    type: eventType("type"),
     date: date("date", { mode: "string" }).notNull(),
     time: time("time"),
     note: text("note"),

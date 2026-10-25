@@ -42,7 +42,7 @@ function StatRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Total({ seconds }: { seconds: number }) {
+export function Total({ seconds }: { seconds: number }) {
   if (seconds <= 0) {
     return (
       <div className="my-2 mb-4 text-h2 leading-[1.3] tracking-[-0.01em] text-text-faint">
