@@ -2,28 +2,28 @@
 
 import { useState, type FormEvent } from "react";
 
+import { DialogShell } from "@/components/shared/dialog-shell";
 import { PasswordField } from "@/components/shared/password-field";
-import { accountFailureText } from "@/components/shared/settings-parts";
-import { IconButton } from "@/components/ui/icon-button";
-import { CheckIcon, CloseIcon } from "@/components/shared/icons";
+import { accountFailureText, pillClass } from "@/components/shared/settings-parts";
+import { Button } from "@/components/ui/button";
 import { useChangePassword } from "@/hooks/use-change-password";
 import { messages } from "@/lib/messages";
 import { useToastStore } from "@/stores/toast.store";
 
 const MIN_LENGTH = 8;
 
-export function SettingsPassword({ onClose }: { onClose: () => void }) {
+type SettingsPasswordDialogProps = { opener: HTMLElement | null; onClose: () => void };
+
+export function SettingsPasswordDialog({ opener, onClose }: SettingsPasswordDialogProps) {
   const change = useChangePassword({ toastOnError: false });
   const show = useToastStore((state) => state.show);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function invalid(): string | null {
     if (!current || !next) return messages.settingsPasswordMissing;
     if (next.length < MIN_LENGTH) return messages.settingsPasswordShort;
-    if (next !== confirm) return messages.settingsPasswordMismatch;
     return null;
   }
 
@@ -42,44 +42,41 @@ export function SettingsPassword({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <form onSubmit={(event) => void onSubmit(event)} className="pb-4">
-      <div className="grid gap-4 min-[900px]:grid-cols-3">
-        <PasswordField
-          label={messages.settingsPasswordCurrent}
-          autoComplete="current-password"
-          value={current}
-          onChange={(event) => setCurrent(event.target.value)}
-        />
-        <PasswordField
-          label={messages.settingsPasswordNew}
-          autoComplete="new-password"
-          value={next}
-          onChange={(event) => setNext(event.target.value)}
-        />
-        <PasswordField
-          label={messages.settingsPasswordConfirm}
-          autoComplete="new-password"
-          value={confirm}
-          onChange={(event) => setConfirm(event.target.value)}
-        />
-      </div>
-      <div className="mt-3 flex items-center gap-2">
-        <p role="alert" className="flex-1 text-small text-danger">
-          {error}
-        </p>
-        <IconButton size="xs" label={messages.settingsCancel} onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-        <IconButton
-          size="xs"
-          variant="solid"
-          type="submit"
-          label={messages.settingsUpdatePassword}
-          disabled={change.isPending}
-        >
-          <CheckIcon size={18} />
-        </IconButton>
-      </div>
-    </form>
+    <DialogShell label={messages.settingsChangePassword} opener={opener} onClose={onClose}>
+      {() => (
+        <form onSubmit={(event) => void onSubmit(event)} className="mt-6">
+          <h2 className="mb-5 text-h2 font-semibold tracking-[-0.01em]">
+            {messages.settingsChangePassword}
+          </h2>
+          <div className="grid gap-4">
+            <PasswordField
+              label={messages.settingsPasswordCurrent}
+              autoComplete="current-password"
+              value={current}
+              onChange={(event) => setCurrent(event.target.value)}
+            />
+            <PasswordField
+              label={messages.settingsPasswordNew}
+              autoComplete="new-password"
+              value={next}
+              onChange={(event) => setNext(event.target.value)}
+            />
+          </div>
+          {error ? (
+            <p role="alert" className="mt-3 text-ui text-danger">
+              {error}
+            </p>
+          ) : null}
+          <div className="mt-6 flex justify-end gap-2">
+            <button type="button" className={pillClass} onClick={onClose}>
+              {messages.settingsCancel}
+            </button>
+            <Button type="submit" disabled={change.isPending} aria-busy={change.isPending}>
+              {messages.settingsUpdatePassword}
+            </Button>
+          </div>
+        </form>
+      )}
+    </DialogShell>
   );
 }

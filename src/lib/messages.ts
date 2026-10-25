@@ -346,10 +346,8 @@ export const messages = {
   settingsUpdatePassword: "Update password",
   settingsPasswordCurrent: "Current",
   settingsPasswordNew: "New",
-  settingsPasswordConfirm: "Confirm new",
   settingsPasswordMissing: "Enter your current and new password.",
   settingsPasswordShort: "Use 8 or more characters.",
-  settingsPasswordMismatch: "The new passwords don't match.",
   settingsDeleteAccount: "Delete account",
   settingsDeleteBody:
     "This removes your account and everything in it. Enter your password to confirm.",

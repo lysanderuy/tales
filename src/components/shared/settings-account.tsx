@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { SettingsDeleteDialog } from "@/components/shared/settings-delete-dialog";
-import { SettingsPassword } from "@/components/shared/settings-password";
+import { SettingsPasswordDialog } from "@/components/shared/settings-password-dialog";
 import {
   SettingsRow,
   SettingsSection,
@@ -13,7 +13,7 @@ import {
 import { messages } from "@/lib/messages";
 
 export function SettingsAccount() {
-  const [changing, setChanging] = useState(false);
+  const [changing, setChanging] = useState<{ opener: HTMLElement | null } | null>(null);
   const [deleting, setDeleting] = useState<{ opener: HTMLElement | null } | null>(null);
 
   return (
@@ -22,13 +22,11 @@ export function SettingsAccount() {
         <button
           type="button"
           className={pillClass}
-          aria-expanded={changing}
-          onClick={() => setChanging((value) => !value)}
+          onClick={(event) => setChanging({ opener: event.currentTarget })}
         >
           {messages.settingsChangePassword}
         </button>
       </SettingsRow>
-      {changing ? <SettingsPassword onClose={() => setChanging(false)} /> : null}
       <SettingsRow title={messages.profileSignOut}>
         <form action="/api/auth/logout" method="post">
           <button type="submit" className={pillClass}>
@@ -45,6 +43,9 @@ export function SettingsAccount() {
           {messages.settingsDeleteAccount}
         </button>
       </SettingsRow>
+      {changing ? (
+        <SettingsPasswordDialog opener={changing.opener} onClose={() => setChanging(null)} />
+      ) : null}
       {deleting ? (
         <SettingsDeleteDialog opener={deleting.opener} onClose={() => setDeleting(null)} />
       ) : null}
