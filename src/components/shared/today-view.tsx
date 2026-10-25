@@ -12,7 +12,7 @@ import { TodaysStudyCard } from "@/components/shared/todays-study-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { useSessionClock } from "@/hooks/use-session-clock";
+import { useActiveSession } from "@/hooks/use-session-clock";
 import { useSubjects } from "@/hooks/use-subjects";
 import { useToday } from "@/hooks/use-today";
 import { messages } from "@/lib/messages";
@@ -27,7 +27,7 @@ export function TodayView() {
   const today = useToday();
   const subjects = useSubjects();
 
-  const { session, display } = useSessionClock();
+  const session = useActiveSession();
 
   const index = useMemo(() => buildSubjectIndex(subjects.data ?? []), [subjects.data]);
 
@@ -68,10 +68,9 @@ export function TodayView() {
           </Eyebrow>
           <h1 className="text-h1 font-semibold tracking-[-0.02em]">{messages.todayTitle}</h1>
         </div>
-        {session && display ? (
+        {session ? (
           <RunningBar
             session={session}
-            display={display}
             subjectName={session.nodeId ? (index.get(session.nodeId)?.name ?? null) : null}
           />
         ) : (

@@ -16,7 +16,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { IconButton } from "@/components/ui/icon-button";
 import { useEvents } from "@/hooks/use-events";
 import { useProfile } from "@/hooks/use-profile";
-import { useSessionClock } from "@/hooks/use-session-clock";
+import { useActiveSession } from "@/hooks/use-session-clock";
 import { useSubjectsWithTotals } from "@/hooks/use-subjects-with-totals";
 import { useToday } from "@/hooks/use-today";
 import { cn } from "@/lib/cn";
@@ -34,7 +34,7 @@ export function EventsView() {
   const subjects = useSubjectsWithTotals();
   const profile = useProfile();
   const todayQuery = useToday();
-  const { session, display } = useSessionClock();
+  const session = useActiveSession();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adding, setAdding] = useState<{ opener: HTMLElement | null } | null>(null);
 
@@ -80,10 +80,9 @@ export function EventsView() {
           )}
           <h1 className="text-h1 font-semibold tracking-[-0.02em]">{messages.eventsTitle}</h1>
         </div>
-        {session && display ? (
+        {session ? (
           <RunningBar
             session={session}
-            display={display}
             subjectName={session.nodeId ? (index.get(session.nodeId)?.name ?? null) : null}
           />
         ) : (

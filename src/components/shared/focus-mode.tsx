@@ -18,7 +18,7 @@ import { usePauseSession } from "@/hooks/use-pause-session";
 import { usePickSubject } from "@/hooks/use-pick-subject";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { useResumeSession } from "@/hooks/use-resume-session";
-import { useSessionClock } from "@/hooks/use-session-clock";
+import { useActiveSession, useSessionClock } from "@/hooks/use-session-clock";
 import { useSessionNote } from "@/hooks/use-session-note";
 import { useStopSession } from "@/hooks/use-stop-session";
 import { useSubjects } from "@/hooks/use-subjects";
@@ -211,16 +211,22 @@ function FocusDialog({ session, display }: FocusDialogProps) {
   );
 }
 
+function LiveFocusDialog({ session }: { session: SessionResponse }) {
+  const { display } = useSessionClock();
+  if (!display) return null;
+  return <FocusDialog session={session} display={display} />;
+}
+
 export function FocusMode() {
   const focusOpen = useUiStore((state) => state.focusOpen);
   const setFocusOpen = useUiStore((state) => state.setFocusOpen);
-  const { session, display } = useSessionClock();
-  const live = session !== null && display !== null;
+  const session = useActiveSession();
+  const live = session !== null;
 
   useEffect(() => {
     if (focusOpen && !live) setFocusOpen(false);
   }, [focusOpen, live, setFocusOpen]);
 
-  if (!focusOpen || !session || !display) return null;
-  return <FocusDialog key={session.id} session={session} display={display} />;
+  if (!focusOpen || !session) return null;
+  return <LiveFocusDialog key={session.id} session={session} />;
 }

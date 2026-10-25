@@ -20,7 +20,7 @@ import { usePlanEvents } from "@/hooks/use-plan-events";
 import { usePlanRecords } from "@/hooks/use-plan-records";
 import { useOpenFocus } from "@/hooks/use-open-focus";
 import { useProfile } from "@/hooks/use-profile";
-import { useSessionClock } from "@/hooks/use-session-clock";
+import { useActiveSession } from "@/hooks/use-session-clock";
 import { useStartBlock } from "@/hooks/use-start-block";
 import { useSubjects } from "@/hooks/use-subjects";
 import { messages } from "@/lib/messages";
@@ -78,7 +78,7 @@ function PlanContent({ timeZone, subjects }: PlanContentProps) {
   const events = usePlanEvents(from, to);
   const records = usePlanRecords(from, to, timeZone);
 
-  const { session, display } = useSessionClock();
+  const session = useActiveSession();
   const startBlock = useStartBlock();
   const openFocus = useOpenFocus();
 
@@ -131,10 +131,9 @@ function PlanContent({ timeZone, subjects }: PlanContentProps) {
           </Eyebrow>
           <h1 className="text-h1 font-semibold tracking-[-0.02em]">{messages.planTitle}</h1>
         </div>
-        {session && display ? (
+        {session ? (
           <RunningBar
             session={session}
-            display={display}
             subjectName={session.nodeId ? (lookup.index.get(session.nodeId)?.name ?? null) : null}
           />
         ) : (

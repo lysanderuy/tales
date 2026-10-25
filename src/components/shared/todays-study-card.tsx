@@ -9,7 +9,7 @@ import { EditRecordDialog } from "@/components/shared/edit-record-dialog";
 import { Card } from "@/components/ui/card";
 import { IconButton } from "@/components/ui/icon-button";
 import { Swatch } from "@/components/ui/swatch";
-import { useSessionClock } from "@/hooks/use-session-clock";
+import { useActiveSession, useSessionClock } from "@/hooks/use-session-clock";
 import { useOpenFocus } from "@/hooks/use-open-focus";
 import { useStartBlock } from "@/hooks/use-start-block";
 import { useStartSession } from "@/hooks/use-start-session";
@@ -134,9 +134,14 @@ function StudyRowMain({ records, onOpen, children }: StudyRowMainProps) {
   );
 }
 
+function LiveClockText({ fallback }: { fallback: string }) {
+  const { display } = useSessionClock();
+  return <>{display ? display.text : fallback}</>;
+}
+
 export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps) {
   const views = rows.map((row) => toRowView(row, index));
-  const { session, display } = useSessionClock();
+  const session = useActiveSession();
   const startBlock = useStartBlock();
   const startSession = useStartSession();
   const openFocus = useOpenFocus();
@@ -208,7 +213,7 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
                       ) : null}
                     </span>
                     <span className="num block min-w-[104px] whitespace-nowrap text-right text-small text-text-soft">
-                      {view.live && display ? display.text : view.progress}
+                      {view.live ? <LiveClockText fallback={view.progress} /> : view.progress}
                       {view.bar ? (
                         <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-fill">
                           <i

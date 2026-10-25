@@ -40,10 +40,18 @@ export interface SessionClock {
   display: ClockDisplay | null;
 }
 
+function activeSession(candidate: SessionResponse | null | undefined): SessionResponse | null {
+  return candidate && candidate.state !== "stopped" ? candidate : null;
+}
+
+export function useActiveSession(): SessionResponse | null {
+  const { data } = useCurrentSession();
+  return activeSession(data?.session);
+}
+
 export function useSessionClock(): SessionClock {
   const { data, dataUpdatedAt } = useCurrentSession();
-  const candidate = data?.session ?? null;
-  const session = candidate && candidate.state !== "stopped" ? candidate : null;
+  const session = activeSession(data?.session);
   const running = session?.state === "running";
 
   const clientNow = useSyncExternalStore(

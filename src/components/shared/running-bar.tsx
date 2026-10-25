@@ -8,20 +8,20 @@ import { IconButton } from "@/components/ui/icon-button";
 import { usePauseSession } from "@/hooks/use-pause-session";
 import { usePickSubject } from "@/hooks/use-pick-subject";
 import { useResumeSession } from "@/hooks/use-resume-session";
+import { useSessionClock } from "@/hooks/use-session-clock";
 import { useStopSession } from "@/hooks/use-stop-session";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
-import type { ClockDisplay } from "@/lib/timer/clock";
 import { useUiStore } from "@/stores/ui.store";
 import type { SessionResponse } from "@/validators/study-session.validator";
 
 type RunningBarProps = {
   session: SessionResponse;
-  display: ClockDisplay;
   subjectName: string | null;
 };
 
-export function RunningBar({ session, display, subjectName }: RunningBarProps) {
+export function RunningBar({ session, subjectName }: RunningBarProps) {
+  const { display } = useSessionClock();
   const setFocusOpen = useUiStore((state) => state.setFocusOpen);
   const pause = usePauseSession();
   const resume = useResumeSession();
@@ -31,6 +31,8 @@ export function RunningBar({ session, display, subjectName }: RunningBarProps) {
   const [nameButton, setNameButton] = useState<HTMLButtonElement | null>(null);
   const closePicker = useCallback(() => setPickerOpen(false), []);
   const busy = pause.isPending || resume.isPending || stop.isPending;
+
+  if (!display) return null;
 
   return (
     <div className="flex max-w-[460px] items-center gap-2 rounded-full border border-border bg-surface py-[5px] pl-3.5 pr-[5px]">

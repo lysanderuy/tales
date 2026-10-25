@@ -14,7 +14,7 @@ import { useSubjectActions } from "@/components/shared/use-subjects-actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { useSessionClock } from "@/hooks/use-session-clock";
+import { useActiveSession } from "@/hooks/use-session-clock";
 import { useSubjectsWithTotals } from "@/hooks/use-subjects-with-totals";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
@@ -35,7 +35,7 @@ const mainClass = "mx-auto w-full max-w-[1200px] flex-1 px-6 pb-[72px] pt-8";
 
 export function SubjectsView() {
   const subjects = useSubjectsWithTotals();
-  const { session, display } = useSessionClock();
+  const session = useActiveSession();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
@@ -163,10 +163,9 @@ export function SubjectsView() {
           )}
           <h1 className="text-h1 font-semibold tracking-[-0.02em]">{messages.subjectsTitle}</h1>
         </div>
-        {session && display ? (
+        {session ? (
           <RunningBar
             session={session}
-            display={display}
             subjectName={session.nodeId ? (index.get(session.nodeId)?.name ?? null) : null}
           />
         ) : (
