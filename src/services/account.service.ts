@@ -21,14 +21,10 @@ export const accountService = {
     const { error: signInError } = await verifyPassword(email, password);
     if (signInError) throw new AppError(403, messages.accountPasswordWrong);
 
-    try {
-      await profileService.purgeAvatarObjects(userId);
-    } catch {
-      throw new AppError(502, messages.serverError);
-    }
-
     const { error } = await getAdminClient().auth.admin.deleteUser(userId);
     if (error) throw error;
+
+    await profileService.purgeAvatarObjects(userId).catch(() => undefined);
   },
 
   async changePassword(
