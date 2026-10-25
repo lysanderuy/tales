@@ -109,7 +109,7 @@ async function isHidden(userId: string, lineId: string): Promise<boolean> {
   return row !== undefined;
 }
 
-async function visibleLineIds(userId: string): Promise<string[]> {
+async function visibleLineIds(userId: string, onlyLineId?: string): Promise<string[]> {
   const selectedId = await selectedSetId(userId);
   if (!selectedId) return [];
   const rows = await db
@@ -125,6 +125,7 @@ async function visibleLineIds(userId: string): Promise<string[]> {
         readableSetCondition(userId),
         eq(dailySets.id, selectedId),
         sql`${hiddenLines.lineId} is null`,
+        onlyLineId ? eq(dailyLines.id, onlyLineId) : undefined,
       ),
     )
     .orderBy(asc(dailyLines.id));
@@ -268,15 +269,15 @@ export const dailyLineService = {
 
   async getTodaysLine(userId: string, todayKey?: string): Promise<TodaysLine> {
     const date = todayKey ?? (await todayKeyFor(userId));
-    const [visible, [existing]] = await Promise.all([
-      visibleLineIds(userId),
-      db
-        .select({ lineId: dailyLinePicks.lineId })
-        .from(dailyLinePicks)
-        .where(owned(dailyLinePicks, userId, eq(dailyLinePicks.date, date))),
-    ]);
+    const [existing] = await db
+      .select({ lineId: dailyLinePicks.lineId })
+      .from(dailyLinePicks)
+      .where(owned(dailyLinePicks, userId, eq(dailyLinePicks.date, date)));
 
-    if (existing && visible.includes(existing.lineId)) return lineById(existing.lineId);
+    if (existing && (await visibleLineIds(userId, existing.lineId)).length > 0) {
+      return lineById(existing.lineId);
+    }
+    const visible = await visibleLineIds(userId);
 
     const [reading] =
       visible.length > 0
