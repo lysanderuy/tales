@@ -7,7 +7,7 @@ describe("resolveSelectedSetId", () => {
     expect(resolveSelectedSetId(["a", "b", "c"], new Set(["b", "c"]))).toBe("b");
   });
 
-  it("defaults to Daily Readings when nothing is on", () => {
+  it("defaults to Daily Verse when nothing is on", () => {
     expect(resolveSelectedSetId(["a", DAILY_VERSE_SET_ID], new Set())).toBe(DAILY_VERSE_SET_ID);
   });
 
@@ -17,7 +17,7 @@ describe("resolveSelectedSetId", () => {
     );
   });
 
-  it("falls back to the first set when Daily Readings is missing", () => {
+  it("falls back to the first set when Daily Verse is missing", () => {
     expect(resolveSelectedSetId(["a", "b"], new Set())).toBe("a");
   });
 
