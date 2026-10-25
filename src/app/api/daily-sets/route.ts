@@ -1,11 +1,11 @@
-import { requireUser } from "@/lib/api/auth";
+import { requireUser, requireUserFast } from "@/lib/api/auth";
 import { apiSuccess, handleApiError } from "@/lib/api/response";
 import { dailySetService } from "@/services/daily-set.service";
 import { createDailySetSchema } from "@/validators/daily-set.validator";
 
 export async function GET() {
   try {
-    const user = await requireUser();
+    const user = await requireUserFast();
 
     return apiSuccess(await dailySetService.list(user.id));
   } catch (error) {

@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/api/auth";
+import { requireUser, requireUserFast } from "@/lib/api/auth";
 import { apiSuccess, handleApiError } from "@/lib/api/response";
 import { outlineNodeService } from "@/services/outline-node.service";
 import {
@@ -8,7 +8,7 @@ import {
 
 export async function GET(request: Request) {
   try {
-    const user = await requireUser();
+    const user = await requireUserFast();
 
     const query = listOutlineNodesQuerySchema.parse(
       Object.fromEntries(new URL(request.url).searchParams),

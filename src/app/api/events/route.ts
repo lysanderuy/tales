@@ -1,11 +1,11 @@
-import { requireUser } from "@/lib/api/auth";
+import { requireUser, requireUserFast } from "@/lib/api/auth";
 import { apiSuccess, handleApiError } from "@/lib/api/response";
 import { eventService } from "@/services/event.service";
 import { createEventSchema, listEventsQuerySchema } from "@/validators/event.validator";
 
 export async function GET(request: Request) {
   try {
-    const user = await requireUser();
+    const user = await requireUserFast();
 
     const query = listEventsQuerySchema.parse(
       Object.fromEntries(new URL(request.url).searchParams),

@@ -1,11 +1,11 @@
-import { requireUser } from "@/lib/api/auth";
+import { requireUser, requireUserFast } from "@/lib/api/auth";
 import { apiSuccess, handleApiError } from "@/lib/api/response";
 import { templateService } from "@/services/template.service";
 import { createTemplateSchema } from "@/validators/template.validator";
 
 export async function GET() {
   try {
-    const user = await requireUser();
+    const user = await requireUserFast();
 
     return apiSuccess(await templateService.list(user.id));
   } catch (error) {

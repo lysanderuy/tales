@@ -1,11 +1,11 @@
-import { requireUser } from "@/lib/api/auth";
+import { requireUser, requireUserFast } from "@/lib/api/auth";
 import { apiSuccess, handleApiError } from "@/lib/api/response";
 import { studySessionService } from "@/services/study-session.service";
 import { sessionIdParamSchema, updateSessionSchema } from "@/validators/study-session.validator";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await requireUser();
+    const user = await requireUserFast();
 
     const id = sessionIdParamSchema.parse((await params).id);
 

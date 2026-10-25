@@ -1,11 +1,11 @@
-import { requireUser } from "@/lib/api/auth";
+import { requireUser, requireUserFast } from "@/lib/api/auth";
 import { apiSuccess, handleApiError } from "@/lib/api/response";
 import { studySessionService } from "@/services/study-session.service";
 import { listSessionsQuerySchema, startSessionSchema } from "@/validators/study-session.validator";
 
 export async function GET(request: Request) {
   try {
-    const user = await requireUser();
+    const user = await requireUserFast();
 
     const query = listSessionsQuerySchema.parse(
       Object.fromEntries(new URL(request.url).searchParams),
