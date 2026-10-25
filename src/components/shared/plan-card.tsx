@@ -224,7 +224,7 @@ export function PlanEventCard({ event, lookup }: PlanEventCardProps) {
         ) : null}
         {event.state === "closed" ? (
           <span className="num mt-2 block text-caption text-text-soft">
-            {messages.planEventClosed}
+            {messages.planEventDone}
           </span>
         ) : null}
         {event.state === "ready_to_close" ? (

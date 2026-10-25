@@ -147,7 +147,7 @@ export const messages = {
   planStudyTomorrow: "Tomorrow's study",
   planStudyYesterday: "Yesterday's study",
   planStudyOther: "Planned study",
-  planEventClosed: "Closed",
+  planEventDone: "Done",
   planEmptyDay: "Nothing planned for this day.",
   planOpen: "Open",
   planLoadPartial: "Some of this plan could not be loaded.",

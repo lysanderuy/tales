@@ -386,7 +386,7 @@ export function PlanEventRow({ event, lookup, spacer }: PlanEventRowProps) {
         ) : (
           <>
             <span className={detailClass}>
-              {event.state === "closed" ? messages.planEventClosed : action}
+              {event.state === "closed" ? messages.planEventDone : action}
             </span>
             {spacer ? <span aria-hidden="true" className="size-11 shrink-0" /> : null}
           </>

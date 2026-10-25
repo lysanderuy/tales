@@ -10,8 +10,8 @@ function render(value: (typeof messages)[keyof typeof messages]): string {
   return typeof value === "function" ? value(...sampleArgs) : value;
 }
 
-// The Events wording was chosen deliberately; "done" is allowed there and nowhere else.
-const ALLOWED_DONE = new Set(["eventsNotMarked", "eventsMarkDone"]);
+// The Events wording was chosen deliberately; "done" is allowed there, and where it shows on plan, and nowhere else.
+const ALLOWED_DONE = new Set(["eventsNotMarked", "eventsMarkDone", "planEventDone"]);
 
 describe("messages", () => {
   it.each(Object.entries(messages))("%s has no banned words", (key, value) => {
