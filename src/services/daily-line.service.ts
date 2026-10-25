@@ -7,7 +7,6 @@ import { lockUser, owned } from "@/db/owned";
 import {
   dailyLinePicks,
   dailyLines,
-  dailySetActivation,
   dailySets,
   hiddenLines,
   profiles,
@@ -17,7 +16,12 @@ import { AppError } from "@/lib/api/response";
 import { chooseLine, parsePasteLines } from "@/lib/daily/pick";
 import { messages } from "@/lib/messages";
 import { DEFAULT_TIME_ZONE, localDateKey } from "@/lib/time/zone";
-import { findOwnSet, findReadableSet, readableSetCondition } from "@/services/daily-set.service";
+import {
+  findOwnSet,
+  findReadableSet,
+  readableSetCondition,
+  selectedSetId,
+} from "@/services/daily-set.service";
 import type {
   BulkDailyLinesInput,
   BulkDailyLinesResponse,
@@ -99,14 +103,12 @@ async function isHidden(userId: string, lineId: string): Promise<boolean> {
 }
 
 async function visibleLineIds(userId: string): Promise<string[]> {
+  const selectedId = await selectedSetId(userId);
+  if (!selectedId) return [];
   const rows = await db
     .select({ id: dailyLines.id })
     .from(dailyLines)
     .innerJoin(dailySets, eq(dailySets.id, dailyLines.setId))
-    .leftJoin(
-      dailySetActivation,
-      and(eq(dailySetActivation.setId, dailySets.id), eq(dailySetActivation.userId, userId)),
-    )
     .leftJoin(
       hiddenLines,
       and(eq(hiddenLines.lineId, dailyLines.id), eq(hiddenLines.userId, userId)),
@@ -114,7 +116,7 @@ async function visibleLineIds(userId: string): Promise<string[]> {
     .where(
       and(
         readableSetCondition(userId),
-        sql`coalesce(${dailySetActivation.active}, true)`,
+        eq(dailySets.id, selectedId),
         sql`${hiddenLines.lineId} is null`,
       ),
     )
@@ -269,18 +271,30 @@ export const dailyLineService = {
 
     if (existing && visible.includes(existing.lineId)) return lineById(existing.lineId);
 
-    const history = await db
-      .select({ lineId: dailyLinePicks.lineId })
-      .from(dailyLinePicks)
-      .where(owned(dailyLinePicks, userId, ne(dailyLinePicks.date, date)))
-      .orderBy(desc(dailyLinePicks.date))
-      .limit(HISTORY_CAP);
+    const [reading] =
+      visible.length > 0
+        ? await db
+            .select({ id: dailyLines.id })
+            .from(dailyLines)
+            .where(and(inArray(dailyLines.id, visible), eq(dailyLines.readingDate, date)))
+            .limit(1)
+        : [];
 
-    const chosen = chooseLine({
-      visibleLineIds: visible,
-      pickHistory: history.reverse().map((row) => row.lineId),
-      random: Math.random,
-    });
+    let chosen: string | null = reading?.id ?? null;
+    if (!chosen) {
+      const history = await db
+        .select({ lineId: dailyLinePicks.lineId })
+        .from(dailyLinePicks)
+        .where(owned(dailyLinePicks, userId, ne(dailyLinePicks.date, date)))
+        .orderBy(desc(dailyLinePicks.date))
+        .limit(HISTORY_CAP);
+
+      chosen = chooseLine({
+        visibleLineIds: visible,
+        pickHistory: history.reverse().map((row) => row.lineId),
+        random: Math.random,
+      });
+    }
     if (!chosen) return null;
 
     if (existing) {

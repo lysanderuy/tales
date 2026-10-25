@@ -4,7 +4,6 @@ import {
   bulkDailyLinesSchema,
   createDailyLineSchema,
   createDailySetSchema,
-  dailySetActivationSchema,
   renameDailySetSchema,
   todaysLineSchema,
   updateDailyLineSchema,
@@ -22,11 +21,6 @@ describe("daily set validators", () => {
     expect(createDailyLineSchema.safeParse({ text: "" }).success).toBe(false);
     expect(createDailyLineSchema.safeParse({ text: "a".repeat(500) }).success).toBe(true);
     expect(updateDailyLineSchema.safeParse({ text: "a".repeat(501) }).success).toBe(false);
-  });
-
-  it("requires a boolean for activation", () => {
-    expect(dailySetActivationSchema.safeParse({ active: false }).success).toBe(true);
-    expect(dailySetActivationSchema.safeParse({ active: "yes" }).success).toBe(false);
   });
 
   it("accepts a pasted block with an optional preview flag", () => {

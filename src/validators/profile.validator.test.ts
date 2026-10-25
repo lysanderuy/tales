@@ -53,6 +53,11 @@ describe("updateProfileSchema", () => {
     expect(updateProfileSchema.safeParse({ timeZone: "" }).success).toBe(false);
   });
 
+  it("accepts only light or dark for theme", () => {
+    expect(updateProfileSchema.safeParse({ theme: "dark" }).success).toBe(true);
+    expect(updateProfileSchema.safeParse({ theme: "blue" }).success).toBe(false);
+  });
+
   it("validates soundOn as a boolean", () => {
     expect(updateProfileSchema.safeParse({ soundOn: false }).success).toBe(true);
     expect(updateProfileSchema.safeParse({ soundOn: "no" }).success).toBe(false);

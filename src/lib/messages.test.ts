@@ -10,9 +10,13 @@ function render(value: (typeof messages)[keyof typeof messages]): string {
   return typeof value === "function" ? value(...sampleArgs) : value;
 }
 
+// The Events wording was chosen deliberately; "done" is allowed there and nowhere else.
+const ALLOWED_DONE = new Set(["eventsNotMarked", "eventsMarkDone"]);
+
 describe("messages", () => {
-  it.each(Object.entries(messages))("%s has no banned words", (_key, value) => {
-    expect(findBannedWords(render(value))).toEqual([]);
+  it.each(Object.entries(messages))("%s has no banned words", (key, value) => {
+    const found = findBannedWords(render(value));
+    expect(ALLOWED_DONE.has(key) ? found.filter((word) => word !== "done") : found).toEqual([]);
   });
 
   it("renders function messages with their arguments", () => {

@@ -16,7 +16,6 @@ import {
   createDailyLineSchema,
   createDailySetSchema,
   dailyLineResponseSchema,
-  dailySetActivationSchema,
   dailySetResponseSchema,
   renameDailySetSchema,
   todaysLineSchema,
@@ -59,7 +58,7 @@ import {
   renameTemplateSchema,
   templateResponseSchema,
 } from "@/validators/template.validator";
-import { deleteAccountSchema } from "@/validators/account.validator";
+import { changePasswordSchema, deleteAccountSchema } from "@/validators/account.validator";
 import { profileResponseSchema, updateProfileSchema } from "@/validators/profile.validator";
 import { reportQuerySchema, reportResponseSchema } from "@/validators/report.validator";
 import {
@@ -225,6 +224,70 @@ const paths: ZodOpenApiPathsObject = {
             "application/json": { schema: errorEnvelope },
           },
         },
+      },
+    },
+  },
+  "/api/profile/avatar": {
+    post: {
+      summary: "Upload a profile picture (PNG, JPEG or WebP, up to 2 MB)",
+      requestBody: {
+        content: {
+          "multipart/form-data": {
+            schema: z.object({
+              file: z.string().meta({
+                format: "binary",
+                description: "The image file.",
+              }),
+            }),
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Profile picture saved.",
+          content: {
+            "application/json": { schema: successEnvelope(profileResponseSchema) },
+          },
+        },
+        "400": errorResponse("Missing file or unsupported image type."),
+        "401": errorResponse("Unauthorized."),
+        "404": errorResponse("Profile not found."),
+        "413": errorResponse("Image is larger than 2 MB."),
+      },
+    },
+    delete: {
+      summary: "Remove the profile picture",
+      responses: {
+        "200": {
+          description: "Profile picture removed.",
+          content: {
+            "application/json": { schema: successEnvelope(profileResponseSchema) },
+          },
+        },
+        "401": errorResponse("Unauthorized."),
+        "404": errorResponse("Profile not found."),
+      },
+    },
+  },
+  "/api/account/password": {
+    patch: {
+      summary: "Change the authenticated user's password and sign out other sessions",
+      requestBody: { content: { "application/json": { schema: changePasswordSchema } } },
+      responses: {
+        "200": {
+          description: "Password changed.",
+          content: {
+            "application/json": {
+              schema: successEnvelope(
+                z.object({ changed: z.literal(true).meta({ example: true }) }),
+              ),
+            },
+          },
+        },
+        "400": errorResponse("New password is the same as the current one."),
+        "401": errorResponse("Unauthorized."),
+        "403": errorResponse("Current password is wrong."),
+        "422": errorResponse("Validation error."),
       },
     },
   },
@@ -576,7 +639,8 @@ const paths: ZodOpenApiPathsObject = {
   "/api/events/{id}": {
     get: {
       tags: eventTags,
-      summary: "One Event with its covers, planned items, time studied, note and marks",
+      summary:
+        "One Event with its covers, planned items, time studied, study sessions, note and marks",
       requestParams: { path: eventIdParams },
       responses: {
         "200": jsonResponse("Event.", eventDetailResponseSchema),
@@ -760,11 +824,11 @@ const paths: ZodOpenApiPathsObject = {
   "/api/daily-sets/{id}/activation": {
     put: {
       tags: dailyTags,
-      summary: "Switch a Daily Set on or off for you. Works on Built-in Sets too.",
+      summary:
+        "Select the one Daily Set Today draws from. Every other Set is turned off. Works on Built-in Sets too.",
       requestParams: { path: dailySetIdParams },
-      requestBody: { content: { "application/json": { schema: dailySetActivationSchema } } },
       responses: {
-        "200": jsonResponse("Updated.", dailySetResponseSchema),
+        "200": jsonResponse("Selected.", dailySetResponseSchema),
         "401": errorResponse("Unauthorized."),
         "404": errorResponse("Not found."),
         "422": errorResponse("Validation error."),

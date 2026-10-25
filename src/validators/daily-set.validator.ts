@@ -29,12 +29,6 @@ export const renameDailySetSchema = z.object({ name: setNameSchema });
 
 export type RenameDailySetInput = z.infer<typeof renameDailySetSchema>;
 
-export const dailySetActivationSchema = z.object({
-  active: z.boolean().meta({ description: "True to draw Lines from this Set." }),
-});
-
-export type DailySetActivationInput = z.infer<typeof dailySetActivationSchema>;
-
 export const createDailyLineSchema = z.object({ text: lineTextSchema });
 
 export type CreateDailyLineInput = z.infer<typeof createDailyLineSchema>;
@@ -59,7 +53,7 @@ export const dailySetResponseSchema = z
     id: idSchema,
     name: z.string(),
     builtIn: z.boolean().meta({ description: "Built-in Sets cannot be changed." }),
-    active: z.boolean().meta({ description: "Whether this Set is on for you." }),
+    active: z.boolean().meta({ description: "True for the one Set Today draws from." }),
     lineCount: z.number().int(),
   })
   .meta({ id: "DailySet", description: "A group of Lines." });

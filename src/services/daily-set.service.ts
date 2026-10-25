@@ -3,13 +3,13 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { owned } from "@/db/owned";
+import { lockUser, owned } from "@/db/owned";
 import { dailyLines, dailySetActivation, dailySets, type DailySet } from "@/db/schema";
 import { AppError } from "@/lib/api/response";
+import { resolveSelectedSetId } from "@/lib/daily/selection";
 import { messages } from "@/lib/messages";
 import type {
   CreateDailySetInput,
-  DailySetActivationInput,
   DailySetResponse,
   RenameDailySetInput,
 } from "@/validators/daily-set.validator";
@@ -33,27 +33,45 @@ export async function findOwnSet(userId: string, setId: string): Promise<DailySe
   return row;
 }
 
+async function readableSets(userId: string): Promise<DailySet[]> {
+  return db
+    .select()
+    .from(dailySets)
+    .where(readableSetCondition(userId))
+    .orderBy(desc(dailySets.builtIn), asc(dailySets.createdAt), asc(dailySets.id));
+}
+
+export async function selectedSetId(userId: string): Promise<string | undefined> {
+  const [all, on] = await Promise.all([
+    readableSets(userId),
+    db
+      .select({ setId: dailySetActivation.setId })
+      .from(dailySetActivation)
+      .where(owned(dailySetActivation, userId, eq(dailySetActivation.active, true))),
+  ]);
+  return resolveSelectedSetId(
+    all.map((row) => row.id),
+    new Set(on.map((row) => row.setId)),
+  );
+}
+
 async function summaries(userId: string, rows: readonly DailySet[]): Promise<DailySetResponse[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((row) => row.id);
-  const [activation, counts] = await Promise.all([
-    db
-      .select({ setId: dailySetActivation.setId, active: dailySetActivation.active })
-      .from(dailySetActivation)
-      .where(owned(dailySetActivation, userId, inArray(dailySetActivation.setId, ids))),
+  const [selectedId, counts] = await Promise.all([
+    selectedSetId(userId),
     db
       .select({ setId: dailyLines.setId, total: sql<number>`count(*)::int` })
       .from(dailyLines)
       .where(inArray(dailyLines.setId, ids))
       .groupBy(dailyLines.setId),
   ]);
-  const activeBySet = new Map(activation.map((row) => [row.setId, row.active]));
   const countBySet = new Map(counts.map((row) => [row.setId, row.total]));
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
     builtIn: row.builtIn,
-    active: activeBySet.get(row.id) ?? true,
+    active: row.id === selectedId,
     lineCount: countBySet.get(row.id) ?? 0,
   }));
 }
@@ -65,11 +83,7 @@ async function summaryOf(userId: string, row: DailySet): Promise<DailySetRespons
 
 export const dailySetService = {
   async list(userId: string): Promise<DailySetResponse[]> {
-    const rows = await db
-      .select()
-      .from(dailySets)
-      .where(readableSetCondition(userId))
-      .orderBy(desc(dailySets.builtIn), asc(dailySets.createdAt), asc(dailySets.id));
+    const rows = await readableSets(userId);
     return summaries(userId, rows);
   },
 
@@ -97,19 +111,21 @@ export const dailySetService = {
     await db.delete(dailySets).where(and(eq(dailySets.id, id), eq(dailySets.ownerId, userId)));
   },
 
-  async setActive(
-    userId: string,
-    id: string,
-    input: DailySetActivationInput,
-  ): Promise<DailySetResponse> {
-    const set = await findReadableSet(userId, id);
-    await db
-      .insert(dailySetActivation)
-      .values({ userId, setId: id, active: input.active })
-      .onConflictDoUpdate({
-        target: [dailySetActivation.userId, dailySetActivation.setId],
-        set: { active: input.active },
-      });
+  async select(userId: string, id: string): Promise<DailySetResponse> {
+    const set = await db.transaction(async (tx) => {
+      await lockUser(tx, userId);
+      const readable = await tx.select().from(dailySets).where(readableSetCondition(userId));
+      const target = readable.find((row) => row.id === id);
+      if (!target) throw new AppError(404, messages.notFound);
+      await tx
+        .insert(dailySetActivation)
+        .values(readable.map((row) => ({ userId, setId: row.id, active: row.id === id })))
+        .onConflictDoUpdate({
+          target: [dailySetActivation.userId, dailySetActivation.setId],
+          set: { active: sql`excluded.active` },
+        });
+      return target;
+    });
     return summaryOf(userId, set);
   },
 };

@@ -12,7 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { ChevronLeftIcon, ChevronRightIcon } from "@/components/shared/icons";
+import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "@/components/shared/icons";
 import { useDismiss } from "@/components/shared/use-dismiss";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { IconButton } from "@/components/ui/icon-button";
@@ -42,6 +42,8 @@ type DateFieldProps = {
   min?: string;
   max?: string;
   label?: string;
+  placeholder?: string;
+  onClear?: () => void;
   onOpenChange?: (open: boolean) => void;
 };
 
@@ -69,8 +71,8 @@ function pad(value: number): string {
 
 function Calendar({ value, today, min, max, anchor, containerRef, onPick }: CalendarProps) {
   const [viewport, setViewport] = useState(readViewport);
-  const [focusDate, setFocusDate] = useState(() => clampDate(value, min, max));
-  const [month, setMonth] = useState(() => monthStart(clampDate(value, min, max)));
+  const [focusDate, setFocusDate] = useState(() => clampDate(value || today, min, max));
+  const [month, setMonth] = useState(() => monthStart(clampDate(value || today, min, max)));
   const keyboardMoveRef = useRef(false);
   const grid = useMemo(() => monthGrid(month), [month]);
   const tabbable = useMemo(() => {
@@ -267,6 +269,8 @@ export function DateField({
   min,
   max,
   label,
+  placeholder,
+  onClear,
   onOpenChange,
 }: DateFieldProps) {
   const [open, setOpen] = useState(false);
@@ -285,21 +289,36 @@ export function DateField({
   return (
     <div className="flex flex-col gap-2">
       {label ? <Eyebrow id={labelId}>{label}</Eyebrow> : null}
-      <button
-        id={buttonId}
-        ref={(element) => {
-          triggerRef.current = element;
-          setTrigger(element);
-        }}
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-labelledby={label ? `${labelId} ${buttonId}` : undefined}
-        onClick={() => setOpen((current) => !current)}
-        className="num min-h-[52px] w-full rounded-field bg-fill px-4 text-left text-body text-text transition-colors hover:bg-fill-hover"
-      >
-        {formatDateLong(value)}
-      </button>
+      <div className="relative">
+        <button
+          id={buttonId}
+          ref={(element) => {
+            triggerRef.current = element;
+            setTrigger(element);
+          }}
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-labelledby={label ? `${labelId} ${buttonId}` : undefined}
+          onClick={() => setOpen((current) => !current)}
+          className={cn(
+            "num min-h-[52px] w-full rounded-field bg-fill px-4 text-left text-body text-text transition-colors hover:bg-fill-hover",
+            onClear && value && "pr-12",
+          )}
+        >
+          {value ? formatDateLong(value) : <span className="text-text-faint">{placeholder}</span>}
+        </button>
+        {onClear && value ? (
+          <IconButton
+            size="xs"
+            label={messages.settingsClearDate}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+            onClick={onClear}
+          >
+            <CloseIcon size={16} />
+          </IconButton>
+        ) : null}
+      </div>
       {open && trigger
         ? createPortal(
             <Calendar

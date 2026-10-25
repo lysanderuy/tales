@@ -134,6 +134,48 @@
       "when": 1792685609941,
       "tag": "0018_watery_pepper_potts",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792854900601,
+      "tag": "0019_jittery_boom_boom",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792858863724,
+      "tag": "0020_lowly_betty_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792858870160,
+      "tag": "0021_seed-daily-verse",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792898135458,
+      "tag": "0022_talented_slayback",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792898140714,
+      "tag": "0023_create-avatars-bucket",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792903712637,
+      "tag": "0024_avatars-bucket-limits",
+      "breakpoints": true
     }
   ]
 }

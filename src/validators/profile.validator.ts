@@ -43,6 +43,10 @@ export const updateProfileSchema = z
       .optional()
       .meta({ description: "IANA time zone that defines her day.", example: "Asia/Manila" }),
     soundOn: z.boolean().optional().meta({ description: "Whether sounds are on.", example: true }),
+    theme: z
+      .enum(["light", "dark"])
+      .optional()
+      .meta({ description: "Color theme.", example: "dark" }),
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
     message: "Provide at least one field to update.",
@@ -77,6 +81,11 @@ export const profileResponseSchema = z
       .string()
       .meta({ description: "IANA time zone that defines her day.", example: "Asia/Manila" }),
     soundOn: z.boolean().meta({ description: "Whether sounds are on.", example: true }),
+    theme: z.enum(["light", "dark"]).meta({ description: "Color theme.", example: "light" }),
+    avatarUrl: z.string().nullable().meta({
+      description: "Public URL of the profile picture, or null when none is set.",
+      example: "https://example.supabase.co/storage/v1/object/public/avatars/user/photo.webp",
+    }),
     createdAt: z.string().datetime().meta({
       description: "Timestamp the profile was created.",
       example: "2026-01-01T00:00:00.000Z",
