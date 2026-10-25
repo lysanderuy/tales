@@ -55,7 +55,9 @@ export function DialogShell({ label, opener, onClose, children }: DialogShellPro
       if (event.key !== "Tab") return;
       const active = document.activeElement;
       if (overlayOpenRef.current && !dialog.contains(active)) return;
-      const items = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE));
+      const items = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        (item) => item.getClientRects().length > 0,
+      );
       const first = items[0];
       const last = items[items.length - 1];
       if (!first || !last) {
