@@ -34,6 +34,7 @@ export const studySessions = pgTable(
       .references(() => profiles.id, { onDelete: "cascade" }),
     nodeId: uuid("node_id"),
     blockId: uuid("block_id"),
+    eventId: uuid("event_id"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     plannedMinutes: integer("planned_minutes"),
@@ -53,6 +54,7 @@ export const studySessions = pgTable(
     }).onDelete("no action"),
     index("study_sessions_user_node_idx").on(t.userId, t.nodeId),
     index("study_sessions_user_block_idx").on(t.userId, t.blockId),
+    index("study_sessions_user_event_idx").on(t.userId, t.eventId),
     uniqueIndex("study_sessions_one_live_per_user")
       .on(t.userId)
       .where(sql`${t.endedAt} is null`),
