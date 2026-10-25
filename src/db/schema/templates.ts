@@ -58,6 +58,7 @@ export const templateItems = pgTable(
       foreignColumns: [outlineNodes.userId, outlineNodes.id],
     }).onDelete("cascade"),
     index("template_items_template_position_idx").on(t.templateId, t.position),
+    index("template_items_node_idx").on(t.nodeId),
     check(
       "template_items_planned_minutes_check",
       sql`${t.plannedMinutes} is null or ${t.plannedMinutes} between 1 and 720`,

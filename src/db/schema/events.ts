@@ -61,6 +61,7 @@ export const eventCovers = pgTable(
   },
   (t) => [
     primaryKey({ name: "event_covers_pk", columns: [t.eventId, t.nodeId] }),
+    index("event_covers_node_idx").on(t.nodeId),
     foreignKey({
       name: "event_covers_event_fk",
       columns: [t.userId, t.eventId],
@@ -86,6 +87,7 @@ export const eventMarks = pgTable(
   },
   (t) => [
     primaryKey({ name: "event_marks_pk", columns: [t.eventId, t.nodeId] }),
+    index("event_marks_node_idx").on(t.nodeId),
     foreignKey({
       name: "event_marks_event_fk",
       columns: [t.userId, t.eventId],

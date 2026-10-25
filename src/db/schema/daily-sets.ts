@@ -26,6 +26,7 @@ export const dailySets = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
+    index("daily_sets_owner_idx").on(t.ownerId),
     check("daily_sets_name_check", sql`char_length(${t.name}) between 1 and 60`),
     check("daily_sets_built_in_check", sql`${t.builtIn} = (${t.ownerId} is null)`),
   ],
@@ -63,7 +64,10 @@ export const dailySetActivation = pgTable(
       .references(() => dailySets.id, { onDelete: "cascade" }),
     active: boolean("active").notNull(),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.setId] })],
+  (t) => [
+    primaryKey({ columns: [t.userId, t.setId] }),
+    index("daily_set_activation_set_idx").on(t.setId),
+  ],
 ).enableRLS();
 
 export const hiddenLines = pgTable(

@@ -183,6 +183,13 @@
       "when": 1792925420219,
       "tag": "0025_motionless_slipstream",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792925575269,
+      "tag": "0026_right_norrin_radd",
+      "breakpoints": true
     }
   ]
 }
