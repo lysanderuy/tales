@@ -18,7 +18,7 @@ page/client component → TanStack Query hook (src/hooks) → api wrapper (src/l
 ```
 
 - Client components NEVER import from `src/services` or `src/db`. They reach the backend only through `src/hooks` → the `api` wrapper. Both layers start their entry files with `import "server-only"` so an accidental client import fails the build instead of leaking server code/secrets to the browser — keep this line at the top of every `*.service.ts` and `src/db/index.ts`.
-- Route handlers stay thin: authenticate (`createClient()` from `src/lib/supabase/server` + `getUser()`), validate with Zod, delegate to a service, respond with `apiSuccess`/`apiError`/`handleApiError` from `src/lib/api/response`. All routes return the `ApiResponse<T>` envelope (`src/types/api.ts`).
+- Route handlers stay thin: authenticate (`requireUser()` from `src/lib/api/auth`, which wraps `createClient()` + `getUser()`; side-effect-free GET handlers may use `requireUserFast()`, which trusts the JWT until expiry), validate with Zod, delegate to a service, respond with `apiSuccess`/`apiError`/`handleApiError` from `src/lib/api/response`. All routes return the `ApiResponse<T>` envelope (`src/types/api.ts`).
 - Services own ALL business logic and DB access. They never touch `Request`/`Response`/cookies; they take plain inputs (e.g. `userId`) and must scope every query to the authenticated user.
 - Exception: auth itself calls the Supabase SDK directly — from pages, and from the redirect-driven `/api/auth/callback` and `/api/auth/logout` routes (they manage cookies and return redirects, not JSON, since they're browser navigations, not JSON calls). App data never does this.
 
