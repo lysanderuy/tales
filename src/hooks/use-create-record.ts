@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
 
+import { invalidateEventData } from "@/hooks/use-events";
 import { invalidatePlanData } from "@/hooks/use-plan-blocks";
 import { sessionKeys } from "@/hooks/use-session";
 import { invalidateSubjectData } from "@/hooks/use-subjects";
@@ -23,6 +24,7 @@ export function useCreateRecord({ toastOnError = true }: { toastOnError?: boolea
     onSettled: () => {
       invalidatePlanData(queryClient);
       invalidateSubjectData(queryClient);
+      invalidateEventData(queryClient);
       void queryClient.invalidateQueries({ queryKey: sessionKeys.all });
     },
   });

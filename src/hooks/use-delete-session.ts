@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { currentSessionKeys } from "@/hooks/use-current-session";
+import { invalidateEventData } from "@/hooks/use-events";
 import { invalidatePlanData } from "@/hooks/use-plan-blocks";
 import { todayKeys } from "@/hooks/use-today";
 import { api } from "@/lib/api/client";
@@ -18,6 +19,7 @@ export function useDeleteSession({ toastOnError = true }: { toastOnError?: boole
       void queryClient.invalidateQueries({ queryKey: currentSessionKeys.all });
       void queryClient.invalidateQueries({ queryKey: todayKeys.all });
       invalidatePlanData(queryClient);
+      invalidateEventData(queryClient);
     },
     onError: toastOnError ? showError : undefined,
   });

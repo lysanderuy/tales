@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
 
+import { invalidateEventData } from "@/hooks/use-events";
 import { invalidatePlanData } from "@/hooks/use-plan-blocks";
 import { api } from "@/lib/api/client";
 import { useToastStore } from "@/stores/toast.store";
@@ -17,6 +18,9 @@ export function useCreateBlock({ toastOnError = true }: { toastOnError?: boolean
   return useMutation({
     mutationFn: (body: CreateBlockVariables) => api.post<BlockResponse>("/api/blocks", body),
     onError: toastOnError ? showError : undefined,
-    onSettled: () => invalidatePlanData(queryClient),
+    onSettled: (_data, _error, variables) => {
+      invalidatePlanData(queryClient);
+      if (variables.eventId) invalidateEventData(queryClient);
+    },
   });
 }

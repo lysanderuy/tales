@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
 
+import { invalidateEventData } from "@/hooks/use-events";
 import {
   applyPlanBlocks,
   invalidatePlanData,
@@ -35,6 +36,7 @@ function applyPatch(
           timeOfDay: patch.timeOfDay === undefined ? block.timeOfDay : patch.timeOfDay,
           plannedMinutes:
             patch.plannedMinutes === undefined ? block.plannedMinutes : patch.plannedMinutes,
+          eventId: patch.eventId === undefined ? block.eventId : patch.eventId,
           position: patch.position ?? lastPosition,
         }
       : block,
@@ -53,6 +55,9 @@ export function useUpdateBlock({ toastOnError = true }: { toastOnError?: boolean
       restorePlanBlocks(queryClient, snapshot);
       if (toastOnError) showError(error);
     },
-    onSettled: () => invalidatePlanData(queryClient),
+    onSettled: (_data, _error, variables) => {
+      invalidatePlanData(queryClient);
+      if (variables.eventId !== undefined) invalidateEventData(queryClient);
+    },
   });
 }
