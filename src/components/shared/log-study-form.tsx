@@ -6,7 +6,7 @@ import { DateField } from "@/components/shared/date-field";
 import { EndScreenMethods } from "@/components/shared/end-screen-methods";
 import { CloseIcon } from "@/components/shared/icons";
 import { Section, failureText } from "@/components/shared/form-parts";
-import { PlanSubjectField } from "@/components/shared/plan-edit-form";
+import { EventLinkField, PlanSubjectField } from "@/components/shared/plan-edit-form";
 import type { PlanLookup } from "@/components/shared/plan-row";
 import { TimeField } from "@/components/shared/time-field";
 import { Button } from "@/components/ui/button";
@@ -46,10 +46,12 @@ export function LogStudyForm({
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
+  const [eventId, setEventId] = useState<string | null>(null);
+  const [eventPickerOpen, setEventPickerOpen] = useState(false);
 
   useEffect(() => {
-    onOverlayChange(pickerOpen || dateOpen);
-  }, [pickerOpen, dateOpen, onOverlayChange]);
+    onOverlayChange(pickerOpen || dateOpen || eventPickerOpen);
+  }, [pickerOpen, dateOpen, eventPickerOpen, onOverlayChange]);
 
   const canSave =
     nodeId !== null && start.valid && start.value !== "" && end.valid && end.value !== "";
@@ -68,6 +70,7 @@ export function LogStudyForm({
         endedAt: zonedInstant(date, end.value, timeZone).toISOString(),
         methodTag,
         note: normalizeNote(note),
+        ...(eventId ? { eventId } : {}),
       });
     } catch (failure) {
       setError(failureText(failure));
@@ -123,6 +126,14 @@ export function LogStudyForm({
           />
         </div>
       </div>
+
+      <EventLinkField
+        eventId={eventId}
+        nodeId={nodeId}
+        today={today}
+        onChange={setEventId}
+        onOpenChange={setEventPickerOpen}
+      />
 
       <Section label={messages.endMethod}>
         <EndScreenMethods value={methodTag} onChange={setMethodTag} />
