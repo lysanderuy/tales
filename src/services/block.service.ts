@@ -87,13 +87,16 @@ async function renumber(
   orderedIds: readonly string[],
 ): Promise<void> {
   const byId = new Map(rows.map((row) => [row.id, row]));
-  for (const [index, id] of orderedIds.entries()) {
-    if (byId.get(id)?.position === index) continue;
-    await tx
-      .update(blocks)
-      .set({ position: index, updatedAt: new Date() })
-      .where(owned(blocks, userId, eq(blocks.id, id)));
-  }
+  const changes = orderedIds.flatMap((id, index) =>
+    byId.get(id)?.position === index ? [] : [sql`(${id}::uuid, ${index}::int)`],
+  );
+  if (changes.length === 0) return;
+  await tx.execute(sql`
+    update blocks as b
+    set position = v.position, updated_at = ${new Date().toISOString()}::timestamptz
+    from (values ${sql.join(changes, sql`, `)}) as v(id, position)
+    where b.user_id = ${userId} and b.id = v.id
+  `);
 }
 
 async function loadOne(executor: Executor, userId: string, id: string): Promise<BlockResponse> {

@@ -304,17 +304,25 @@ export const eventService = {
           throw new AppError(422, messages.eventMarkNotAllowed);
         }
 
-        const toSet = marks.flatMap((entry) =>
-          entry.mark === null ? [] : [{ nodeId: entry.nodeId, mark: entry.mark }],
-        );
+        const latestMark = new Map<string, NonNullable<(typeof marks)[number]["mark"]>>();
+        for (const entry of marks)
+          if (entry.mark !== null) latestMark.set(entry.nodeId, entry.mark);
+        const toSet = [...latestMark].map(([nodeId, mark]) => ({ nodeId, mark }));
         const toClear = marks.filter((entry) => entry.mark === null).map((entry) => entry.nodeId);
-        for (const entry of toSet) {
+        if (toSet.length > 0) {
           await tx
             .insert(eventMarks)
-            .values({ userId, eventId: id, nodeId: entry.nodeId, mark: entry.mark })
+            .values(
+              toSet.map((entry) => ({
+                userId,
+                eventId: id,
+                nodeId: entry.nodeId,
+                mark: entry.mark,
+              })),
+            )
             .onConflictDoUpdate({
               target: [eventMarks.eventId, eventMarks.nodeId],
-              set: { mark: entry.mark },
+              set: { mark: sql`excluded.mark` },
             });
         }
         if (toClear.length > 0) {
