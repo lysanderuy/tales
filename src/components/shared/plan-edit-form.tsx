@@ -6,6 +6,7 @@ import { DateField } from "@/components/shared/date-field";
 import { Section, failureText } from "@/components/shared/form-parts";
 import { CloseIcon } from "@/components/shared/icons";
 import { EndScreenDiscard } from "@/components/shared/end-screen-discard";
+import { EventPicker } from "@/components/shared/event-picker";
 import { Picker } from "@/components/shared/picker";
 import { lookupSubject, type PlanLookup } from "@/components/shared/plan-row";
 import { SubjectTrigger } from "@/components/shared/subject-trigger";
@@ -15,10 +16,13 @@ import { IconButton } from "@/components/ui/icon-button";
 import { useCreateBlock } from "@/hooks/use-create-block";
 import { useDeleteBlock } from "@/hooks/use-delete-block";
 import { useUpdateBlock, type UpdateBlockVariables } from "@/hooks/use-update-block";
+import { useEvents } from "@/hooks/use-events";
 import { cn } from "@/lib/cn";
+import { formatEventMeta } from "@/lib/events/dates";
 import { messages } from "@/lib/messages";
 import { formatPath } from "@/lib/today/subject-index";
 import type { BlockResponse } from "@/validators/block.validator";
+import type { EventSummaryResponse } from "@/validators/event.validator";
 
 const MIN_MINUTES = 1;
 const MAX_MINUTES = 720;
@@ -162,6 +166,98 @@ function MinutesChips({
   );
 }
 
+type EventLinkFieldProps = {
+  eventId: string | null;
+  nodeId: string | null;
+  today: string;
+  onChange: (eventId: string | null) => void;
+  onOpenChange?: (open: boolean) => void;
+};
+
+export function useEventCandidates(
+  eventId: string | null,
+  nodeId: string | null,
+): { candidates: EventSummaryResponse[]; visible: boolean } {
+  const { data } = useEvents();
+  const candidates = [...(data?.events ?? [])].sort((a, b) => {
+    const closed = Number(a.state === "closed") - Number(b.state === "closed");
+    if (closed !== 0) return closed;
+    const covers =
+      Number(!!nodeId && b.coverIds.includes(nodeId)) -
+      Number(!!nodeId && a.coverIds.includes(nodeId));
+    if (covers !== 0) return covers;
+    const order = a.date.localeCompare(b.date) || (a.time ?? "").localeCompare(b.time ?? "");
+    return a.state === "closed" ? -order : order;
+  });
+  return { candidates, visible: eventId !== null || candidates.length > 0 };
+}
+
+export function EventLinkBody({
+  eventId,
+  nodeId,
+  today,
+  onChange,
+  onOpenChange,
+}: EventLinkFieldProps) {
+  const { candidates, visible } = useEventCandidates(eventId, nodeId);
+  const [open, setOpen] = useState(false);
+  const [button, setButton] = useState<HTMLButtonElement | null>(null);
+  const close = useCallback(() => setOpen(false), []);
+  const linked = eventId ? candidates.find((event) => event.id === eventId) : undefined;
+
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
+
+  if (!visible) return null;
+
+  return (
+    <>
+      <button
+        ref={setButton}
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className="flex min-h-[52px] w-full items-baseline justify-between gap-3 rounded-field bg-fill px-4 py-3.5 text-left text-body transition-colors hover:bg-fill-hover"
+      >
+        {eventId ? (
+          <>
+            <span className="min-w-0 truncate">{linked?.title ?? messages.planEventFallback}</span>
+            {linked ? (
+              <span className="num shrink-0 text-small text-text-faint">
+                {formatEventMeta(linked.date, linked.time, today)}
+              </span>
+            ) : null}
+          </>
+        ) : (
+          <span className="text-text-faint">{messages.planEventPlaceholder}</span>
+        )}
+      </button>
+      {open ? (
+        <EventPicker
+          anchor={button}
+          events={candidates}
+          selectedId={eventId}
+          today={today}
+          onPick={onChange}
+          onClose={close}
+        />
+      ) : null}
+    </>
+  );
+}
+
+export function EventLinkField(props: EventLinkFieldProps) {
+  const { visible } = useEventCandidates(props.eventId, props.nodeId);
+  if (!visible) return null;
+  return (
+    <Section label={messages.planEventLabel}>
+      <EventLinkBody {...props} />
+    </Section>
+  );
+}
+
 type PlanEditFormProps = {
   block: BlockResponse | null;
   defaultDate: string;
@@ -190,6 +286,7 @@ export function PlanEditForm({
     initialChoice(block?.plannedMinutes ?? null) === "custom" ? String(block?.plannedMinutes) : "",
   );
   const [date, setDate] = useState(block?.date ?? defaultDate);
+  const [eventId, setEventId] = useState<string | null>(block?.eventId ?? null);
   const [time, setTime] = useState(block?.timeOfDay ?? "");
   const [timeValid, setTimeValid] = useState(true);
   const [minutesError, setMinutesError] = useState<string | null>(null);
@@ -197,11 +294,12 @@ export function PlanEditForm({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [eventPickerOpen, setEventPickerOpen] = useState(false);
   const busy = create.isPending || update.isPending || remove.isPending;
 
   useEffect(() => {
-    onOverlayChange(pickerOpen || dateOpen || confirmOpen);
-  }, [pickerOpen, dateOpen, confirmOpen, onOverlayChange]);
+    onOverlayChange(pickerOpen || dateOpen || confirmOpen || eventPickerOpen);
+  }, [pickerOpen, dateOpen, confirmOpen, eventPickerOpen, onOverlayChange]);
 
   const commitCustom = () => {
     const value = parseCustom(customText);
@@ -232,7 +330,13 @@ export function PlanEditForm({
     if (!block) {
       setError(null);
       try {
-        await create.mutateAsync({ nodeId, date, plannedMinutes, timeOfDay });
+        await create.mutateAsync({
+          nodeId,
+          date,
+          plannedMinutes,
+          timeOfDay,
+          ...(eventId ? { eventId } : {}),
+        });
       } catch (failure) {
         setError(failureText(failure));
         return;
@@ -245,6 +349,7 @@ export function PlanEditForm({
     if (plannedMinutes !== block.plannedMinutes) patch.plannedMinutes = plannedMinutes;
     if (date !== block.date) patch.date = date;
     if (timeOfDay !== block.timeOfDay) patch.timeOfDay = timeOfDay;
+    if (eventId !== block.eventId) patch.eventId = eventId;
     if (Object.keys(patch).length === 0) {
       onClose();
       return;
@@ -330,6 +435,14 @@ export function PlanEditForm({
           </p>
         ) : null}
       </Section>
+
+      <EventLinkField
+        eventId={eventId}
+        nodeId={nodeId}
+        today={today}
+        onChange={setEventId}
+        onOpenChange={setEventPickerOpen}
+      />
 
       {error ? (
         <p role="alert" className="mt-4 text-small text-danger">

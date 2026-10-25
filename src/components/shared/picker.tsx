@@ -47,7 +47,7 @@ function readViewport(): Viewport {
   return { width: window.innerWidth, height: window.innerHeight };
 }
 
-function useViewport(): Viewport {
+export function useViewport(): Viewport {
   const [viewport, setViewport] = useState(readViewport);
   useEffect(() => {
     const onResize = () => setViewport(readViewport());
