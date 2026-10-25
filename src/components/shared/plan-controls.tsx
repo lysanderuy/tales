@@ -16,7 +16,6 @@ type PlanControlsProps = {
   onStep: (step: -1 | 1) => void;
   onToday: () => void;
   onMode: (mode: PlanViewMode) => void;
-  pastDay: boolean;
   onPlan: (opener: HTMLElement) => void;
   onLog: (opener: HTMLElement) => void;
 };
@@ -24,12 +23,12 @@ type PlanControlsProps = {
 const itemClass = "flex w-full items-center rounded-row p-2.5 text-left text-ui hover:bg-fill";
 
 type AddMenuProps = {
-  pastDay: boolean;
   onPlan: (opener: HTMLElement) => void;
   onLog: (opener: HTMLElement) => void;
+  align?: "left" | "right";
 };
 
-function AddMenu({ pastDay, onPlan, onLog }: AddMenuProps) {
+export function AddMenu({ onPlan, onLog, align = "left" }: AddMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -40,7 +39,6 @@ function AddMenu({ pastDay, onPlan, onLog }: AddMenuProps) {
     { label: messages.planPlanStudy, run: onPlan },
     { label: messages.planLogStudy, run: onLog },
   ];
-  if (pastDay) items.reverse();
 
   return (
     <div className="relative">
@@ -58,7 +56,10 @@ function AddMenu({ pastDay, onPlan, onLog }: AddMenuProps) {
       {open ? (
         <div
           ref={containerRef}
-          className="absolute left-0 top-[48px] z-[6] w-[200px] rounded-field border border-border bg-surface p-1.5 text-left"
+          className={cn(
+            "absolute top-[48px] z-[6] w-[200px] rounded-field border border-border bg-surface p-1.5 text-left",
+            align === "right" ? "right-0" : "left-0",
+          )}
         >
           {items.map((item) => (
             <button
@@ -90,7 +91,6 @@ export function PlanControls({
   onStep,
   onToday,
   onMode,
-  pastDay,
   onPlan,
   onLog,
 }: PlanControlsProps) {
@@ -113,7 +113,7 @@ export function PlanControls({
         >
           {messages.planToday}
         </button>
-        <AddMenu pastDay={pastDay} onPlan={onPlan} onLog={onLog} />
+        <AddMenu onPlan={onPlan} onLog={onLog} />
       </div>
       <div
         role="group"

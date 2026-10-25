@@ -146,7 +146,6 @@ function PlanContent({ timeZone, subjects }: PlanContentProps) {
         onStep={(step) => setSelected(shiftDate(date, step, mode === "day" ? "day" : "week"))}
         onToday={() => setSelected(null)}
         onMode={setMode}
-        pastDay={date < today}
         onPlan={(opener) => setEditing({ block: null, opener })}
         onLog={(opener) => setLogging({ opener })}
       />
