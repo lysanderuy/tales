@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 
 import { PlayIcon } from "@/components/shared/icons";
@@ -369,6 +370,15 @@ export function PlanEventRow({ event, lookup, spacer }: PlanEventRowProps) {
         </span>
         <span className={detailClass}>
           {event.state === "closed" ? messages.planEventClosed : ""}
+          {event.state === "ready_to_close" ? (
+            <Link
+              href={`/events?event=${event.id}`}
+              aria-label={messages.planEventCloseLabel(event.title)}
+              className="press inline-flex h-8 items-center rounded-full bg-primary-soft px-3.5 text-small font-semibold text-primary hover:opacity-80"
+            >
+              {messages.planEventClose}
+            </Link>
+          ) : null}
         </span>
         {spacer ? <span aria-hidden="true" className="size-11 shrink-0" /> : null}
       </div>

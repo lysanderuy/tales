@@ -29,13 +29,13 @@ const wide = "col-span-24 min-[900px]:col-span-13";
 const narrow = "col-span-24 min-[900px]:sticky min-[900px]:top-[88px] min-[900px]:col-span-11";
 const mainClass = "mx-auto w-full max-w-[1200px] flex-1 px-6 pb-[72px] pt-8";
 
-export function EventsView() {
+export function EventsView({ initialEventId = null }: { initialEventId?: string | null }) {
   const events = useEvents();
   const subjects = useSubjectsWithTotals();
   const profile = useProfile();
   const todayQuery = useToday();
   const session = useActiveSession();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialEventId);
   const [adding, setAdding] = useState<{ opener: HTMLElement | null } | null>(null);
 
   const list = events.data?.events;

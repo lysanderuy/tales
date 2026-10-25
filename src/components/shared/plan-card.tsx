@@ -1,6 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
+import Link from "next/link";
 
 import {
   ArchivedTag,
@@ -225,6 +226,14 @@ export function PlanEventCard({ event, lookup }: PlanEventCardProps) {
           <span className="num mt-2 block text-caption text-text-soft">
             {messages.planEventClosed}
           </span>
+        ) : null}
+        {event.state === "ready_to_close" ? (
+          <Link
+            href={`/events?event=${event.id}`}
+            className="num mt-2 block text-caption text-text-soft hover:text-text hover:underline"
+          >
+            {messages.planEventReadyToClose}
+          </Link>
         ) : null}
       </div>
     </div>
