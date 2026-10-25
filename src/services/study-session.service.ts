@@ -49,6 +49,7 @@ type Executor = Tx | typeof db;
 
 export interface NodeTotals {
   seconds: number;
+  recentSeconds: number;
   lastStartedAt: Date;
 }
 
@@ -641,18 +642,17 @@ export const studySessionService = {
     return dayRangeUtc(addDays(localDateKey(now, timeZone), -(days - 1)), timeZone).start;
   },
 
-  async totalsByNode(
-    userId: string,
-    range: { from?: Date; to?: Date } = {},
-  ): Promise<Map<string, NodeTotals>> {
+  async totalsByNode(userId: string, recentFrom: Date): Promise<Map<string, NodeTotals>> {
     const rows = await db.execute<{
       node_id: string;
       seconds: string;
+      recent_seconds: string;
       last_started_epoch: string;
     }>(sql`
       select
         s.node_id,
-        sum(greatest(extract(epoch from (s.ended_at - s.started_at)) - coalesce(p.paused_seconds, 0), 0)) as seconds,
+        sum(active.seconds) as seconds,
+        coalesce(sum(active.seconds) filter (where s.started_at >= ${recentFrom.toISOString()}::timestamptz), 0) as recent_seconds,
         extract(epoch from max(s.started_at)) as last_started_epoch
       from study_sessions s
       left join lateral (
@@ -660,11 +660,12 @@ export const studySessionService = {
         from session_pauses sp
         where sp.session_id = s.id and sp.user_id = s.user_id
       ) p on true
+      cross join lateral (
+        select greatest(extract(epoch from (s.ended_at - s.started_at)) - coalesce(p.paused_seconds, 0), 0) as seconds
+      ) active
       where s.user_id = ${userId}
         and s.ended_at is not null
         and s.node_id is not null
-        ${range.from ? sql`and s.started_at >= ${range.from.toISOString()}::timestamptz` : sql``}
-        ${range.to ? sql`and s.started_at < ${range.to.toISOString()}::timestamptz` : sql``}
       group by s.node_id
     `);
 
@@ -672,6 +673,7 @@ export const studySessionService = {
     for (const row of rows) {
       totals.set(row.node_id, {
         seconds: Number(row.seconds),
+        recentSeconds: Number(row.recent_seconds),
         lastStartedAt: new Date(Number(row.last_started_epoch) * 1000),
       });
     }
@@ -684,6 +686,8 @@ export const studySessionService = {
     range: { from: string; to: string },
     timeZone: string,
   ): Promise<DayNodeTotal[]> {
+    const startUtc = dayRangeUtc(range.from, timeZone).start;
+    const endUtc = dayRangeUtc(range.to, timeZone).end;
     const rows = await db.execute<{ day: string; node_id: string; seconds: string }>(sql`
       select
         to_char((s.started_at at time zone ${timeZone})::date, 'YYYY-MM-DD') as day,
@@ -698,7 +702,8 @@ export const studySessionService = {
       where s.user_id = ${userId}
         and s.ended_at is not null
         and s.node_id is not null
-        and (s.started_at at time zone ${timeZone})::date between ${range.from}::date and ${range.to}::date
+        and s.started_at >= ${startUtc.toISOString()}::timestamptz
+        and s.started_at < ${endUtc.toISOString()}::timestamptz
       group by 1, s.node_id
     `);
     return Array.from(rows, (row) => ({

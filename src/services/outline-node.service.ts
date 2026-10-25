@@ -1,10 +1,10 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { lockUser, owned } from "@/db/owned";
-import { blocks, outlineNodes, studySessions, type OutlineNode } from "@/db/schema";
+import { outlineNodes, type OutlineNode } from "@/db/schema";
 import { AppError, mapDbError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
 import {
@@ -14,7 +14,7 @@ import {
   orderedRows,
   rollUp,
 } from "@/lib/outline/tree";
-import { studySessionService, type NodeTotals } from "@/services/study-session.service";
+import { studySessionService } from "@/services/study-session.service";
 import type {
   CreateOutlineNodeInput,
   MoveOutlineNodeInput,
@@ -75,13 +75,16 @@ function childrenOf(rows: OutlineNode[], parentId: string | null): OutlineNode[]
 }
 
 async function renumber(tx: Tx, userId: string, ordered: OutlineNode[]): Promise<void> {
-  for (const [index, row] of ordered.entries()) {
-    if (row.position === index) continue;
-    await tx
-      .update(outlineNodes)
-      .set({ position: index, updatedAt: new Date() })
-      .where(owned(outlineNodes, userId, eq(outlineNodes.id, row.id)));
-  }
+  const changes = ordered.flatMap((row, index) =>
+    row.position === index ? [] : [sql`(${row.id}::uuid, ${index}::int)`],
+  );
+  if (changes.length === 0) return;
+  await tx.execute(sql`
+    update outline_nodes as n
+    set position = v.position, updated_at = ${new Date().toISOString()}::timestamptz
+    from (values ${sql.join(changes, sql`, `)}) as v(id, position)
+    where n.user_id = ${userId} and n.id = v.id
+  `);
 }
 
 function usedRootColors(rows: OutlineNode[], exceptId?: string): number[] {
@@ -90,27 +93,17 @@ function usedRootColors(rows: OutlineNode[], exceptId?: string): number[] {
     .map((row) => row.colorIndex as number);
 }
 
-function secondsAndLast(totals: Map<string, NodeTotals>) {
-  const seconds = new Map<string, number>();
-  const last = new Map<string, Date>();
-  for (const [nodeId, value] of totals) {
-    seconds.set(nodeId, value.seconds);
-    last.set(nodeId, value.lastStartedAt);
-  }
-  return { seconds, last };
-}
-
 async function recordedNodeIds(userId: string): Promise<Set<string>> {
-  const [sessionRows, blockRows] = await Promise.all([
-    db
-      .selectDistinct({ nodeId: studySessions.nodeId })
-      .from(studySessions)
-      .where(owned(studySessions, userId)),
-    db.selectDistinct({ nodeId: blocks.nodeId }).from(blocks).where(owned(blocks, userId)),
-  ]);
-  const ids = new Set<string>();
-  for (const { nodeId } of [...sessionRows, ...blockRows]) if (nodeId) ids.add(nodeId);
-  return ids;
+  const rows = await db.execute<{ id: string }>(sql`
+    select n.id
+    from outline_nodes n
+    where n.user_id = ${userId}
+      and (
+        exists (select 1 from study_sessions s where s.user_id = n.user_id and s.node_id = n.id)
+        or exists (select 1 from blocks b where b.user_id = n.user_id and b.node_id = n.id)
+      )
+  `);
+  return new Set(Array.from(rows, (row) => row.id));
 }
 
 async function withTotals(
@@ -120,16 +113,21 @@ async function withTotals(
 ): Promise<OutlineNodeResponse[]> {
   const now = new Date();
   const recentFrom = await studySessionService.recentWindowStart(userId, now, 7);
-  const [allTime, recent, recorded] = await Promise.all([
-    studySessionService.totalsByNode(userId),
-    studySessionService.totalsByNode(userId, { from: recentFrom }),
+  const [totals, recorded] = await Promise.all([
+    studySessionService.totalsByNode(userId, recentFrom),
     recordedNodeIds(userId),
   ]);
   const withRecords = idsWithRecordsBelow(rows, recorded);
-  const all = secondsAndLast(allTime);
-  const recentSeconds = secondsAndLast(recent);
-  const rolledAll = rollUp(rows, all.seconds, all.last);
-  const rolledRecent = rollUp(rows, recentSeconds.seconds, recentSeconds.last);
+  const seconds = new Map<string, number>();
+  const recentSeconds = new Map<string, number>();
+  const last = new Map<string, Date>();
+  for (const [nodeId, value] of totals) {
+    seconds.set(nodeId, value.seconds);
+    recentSeconds.set(nodeId, value.recentSeconds);
+    last.set(nodeId, value.lastStartedAt);
+  }
+  const rolledAll = rollUp(rows, seconds, last);
+  const rolledRecent = rollUp(rows, recentSeconds, new Map());
 
   return nodes.map((node) => {
     const total = rolledAll.get(node.id);
