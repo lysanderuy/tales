@@ -36,7 +36,14 @@ const INSERT_CHUNK = 1000;
 export const MAX_LINES_PER_SET = 5000;
 
 function toResponse(row: DailyLine, hidden: boolean): DailyLineResponse {
-  return { id: row.id, setId: row.setId, text: row.text, position: row.position, hidden };
+  return {
+    id: row.id,
+    setId: row.setId,
+    text: row.text,
+    position: row.position,
+    hidden,
+    readingDate: row.readingDate,
+  };
 }
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];

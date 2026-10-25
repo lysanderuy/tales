@@ -333,6 +333,7 @@ export const messages = {
   settingsAddLinePlaceholder: "Add a line",
   settingsAddLine: "Add line",
   settingsAddLines: "Add lines",
+  settingsLineToday: "Today",
   settingsNoLines: "No lines yet.",
   settingsNothingNew: "Nothing new to add.",
   settingsLineOne: "line",

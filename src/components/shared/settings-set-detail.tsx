@@ -11,9 +11,12 @@ import { useDailySetLines } from "@/hooks/use-daily-set-lines";
 import { useDeleteDailyLine } from "@/hooks/use-delete-daily-line";
 import { useDeleteDailySet } from "@/hooks/use-delete-daily-set";
 import { useHideDailyLine } from "@/hooks/use-hide-daily-line";
+import { useProfile } from "@/hooks/use-profile";
 import { useRenameDailySet } from "@/hooks/use-rename-daily-set";
 import { cn } from "@/lib/cn";
+import { formatShortDate } from "@/lib/events/dates";
 import { messages } from "@/lib/messages";
+import { DEFAULT_TIME_ZONE, localDateKey } from "@/lib/time/zone";
 import { useToastStore } from "@/stores/toast.store";
 import type { DailyLineResponse, DailySetResponse } from "@/validators/daily-set.validator";
 
@@ -99,7 +102,15 @@ function SetDelete({ id, onDeleted }: { id: string; onDeleted: () => void }) {
   );
 }
 
-function LineRow({ line, builtIn }: { line: DailyLineResponse; builtIn: boolean }) {
+function LineRow({
+  line,
+  builtIn,
+  today,
+}: {
+  line: DailyLineResponse;
+  builtIn: boolean;
+  today: string;
+}) {
   const hide = useHideDailyLine();
   const remove = useDeleteDailyLine();
   const hidden = builtIn && line.hidden;
@@ -110,8 +121,20 @@ function LineRow({ line, builtIn }: { line: DailyLineResponse; builtIn: boolean 
     : messages.settingsRemoveLine;
 
   return (
-    <li className="group flex items-center gap-2 border-t border-border py-3.5 first:border-t-0">
-      <span className={cn("flex-1", hidden && "text-text-faint")}>{line.text}</span>
+    <li
+      data-today={line.readingDate === today ? "" : undefined}
+      className="group flex items-center gap-2 border-t border-border py-3.5 first:border-t-0"
+    >
+      <div className={cn("min-w-0 flex-1", hidden && "text-text-faint")}>
+        {line.readingDate ? (
+          <p className="num mb-1 text-small text-text-faint">
+            {line.readingDate === today
+              ? messages.settingsLineToday
+              : formatShortDate(line.readingDate, today)}
+          </p>
+        ) : null}
+        <span>{line.text}</span>
+      </div>
       <IconButton
         size="xs"
         variant="fill"
@@ -132,6 +155,18 @@ function LineRow({ line, builtIn }: { line: DailyLineResponse; builtIn: boolean 
 
 export function SettingsSetDetail({ set, focusTitle, onDeleted }: SettingsSetDetailProps) {
   const lines = useDailySetLines(set.id);
+  const profile = useProfile();
+  const today = localDateKey(new Date(), profile.data?.timeZone ?? DEFAULT_TIME_ZONE);
+  const listRef = useRef<HTMLUListElement>(null);
+  const scrolledFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || !lines.data || scrolledFor.current === set.id) return;
+    scrolledFor.current = set.id;
+    const row = list.querySelector<HTMLElement>("[data-today]");
+    if (row) list.scrollTop = row.getBoundingClientRect().top - list.getBoundingClientRect().top;
+  }, [lines.data, set.id]);
 
   return (
     <div className="flex min-w-0 flex-col min-[900px]:border-l min-[900px]:border-border min-[900px]:pl-6">
@@ -150,9 +185,9 @@ export function SettingsSetDetail({ set, focusTitle, onDeleted }: SettingsSetDet
       ) : lines.data && lines.data.length === 0 ? (
         <p className="text-small text-text-soft">{messages.settingsNoLines}</p>
       ) : (
-        <ul>
+        <ul ref={listRef} className="overflow-y-auto pr-2" style={{ maxHeight: 360 }}>
           {lines.data?.map((line) => (
-            <LineRow key={line.id} line={line} builtIn={set.builtIn} />
+            <LineRow key={line.id} line={line} builtIn={set.builtIn} today={today} />
           ))}
         </ul>
       )}

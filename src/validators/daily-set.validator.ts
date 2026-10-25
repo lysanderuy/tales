@@ -67,6 +67,10 @@ export const dailyLineResponseSchema = z
     text: z.string(),
     position: z.number().int().meta({ description: "Zero-based place in the Set." }),
     hidden: z.boolean().meta({ description: "True when you have hidden this Line." }),
+    readingDate: z
+      .string()
+      .nullable()
+      .meta({ description: "The day this Line is read, or null when it has no fixed day." }),
   })
   .meta({ id: "DailyLine", description: "One Line in a Set." });
 
