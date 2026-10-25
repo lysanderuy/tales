@@ -167,6 +167,15 @@ export function MethodIcon({ size = 20 }: IconProps) {
   );
 }
 
+export function EventIcon({ size = 20 }: IconProps) {
+  return (
+    <StrokeIcon size={size}>
+      <rect x="4" y="5.5" width="16" height="14" rx="2" />
+      <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" />
+    </StrokeIcon>
+  );
+}
+
 export function NoteIcon({ size = 20 }: IconProps) {
   return (
     <StrokeIcon size={size}>
