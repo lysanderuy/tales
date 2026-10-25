@@ -11,13 +11,14 @@ import {
   events,
   outlineNodes,
   profiles,
+  studySessions,
   type Event,
 } from "@/db/schema";
 import { AppError } from "@/lib/api/response";
 import { eventState, markableNodeIds, type EventState } from "@/lib/events/state";
 import { messages } from "@/lib/messages";
 import { DEFAULT_TIME_ZONE } from "@/lib/time/zone";
-import { progressByBlock, sessionsByBlock } from "@/services/study-session.service";
+import { progressByBlock, sessionsForEvent } from "@/services/study-session.service";
 import type {
   CloseEventInput,
   CreateEventInput,
@@ -147,15 +148,12 @@ async function loadDetail(
   const blockIds = linked.map((block) => block.id);
   const [progress, sessions] = await Promise.all([
     progressByBlock(executor, userId, blockIds),
-    sessionsByBlock(executor, userId, blockIds),
+    sessionsForEvent(executor, userId, id),
   ]);
 
   const secondsByNode = new Map<string, number>();
-  for (const block of linked) {
-    secondsByNode.set(
-      block.nodeId,
-      (secondsByNode.get(block.nodeId) ?? 0) + (progress.get(block.id) ?? 0),
-    );
+  for (const session of sessions) {
+    secondsByNode.set(session.nodeId, (secondsByNode.get(session.nodeId) ?? 0) + session.seconds);
   }
 
   return {
@@ -169,7 +167,13 @@ async function loadDetail(
       progressSeconds: progress.get(block.id) ?? 0,
     })),
     sessionSecondsByNode: [...secondsByNode].map(([nodeId, seconds]) => ({ nodeId, seconds })),
-    sessions,
+    sessions: sessions.map((session) => ({
+      id: session.id,
+      nodeId: session.nodeId,
+      startedAt: session.startedAt,
+      endedAt: session.endedAt,
+      seconds: session.seconds,
+    })),
     marks,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -287,18 +291,22 @@ export const eventService = {
 
       const marks = input.marks ?? [];
       if (marks.length > 0) {
-        const [covers, linked] = await Promise.all([
+        const [covers, linked, sessionNodes] = await Promise.all([
           loadCovers(tx, userId, [id]),
           tx
             .selectDistinct({ nodeId: blocks.nodeId })
             .from(blocks)
             .where(owned(blocks, userId, eq(blocks.eventId, id))),
+          tx
+            .selectDistinct({ nodeId: studySessions.nodeId })
+            .from(studySessions)
+            .where(owned(studySessions, userId, eq(studySessions.eventId, id))),
         ]);
         const allowed = new Set(
-          markableNodeIds(
-            covers.get(id) ?? [],
-            linked.map((block) => block.nodeId),
-          ),
+          markableNodeIds(covers.get(id) ?? [], [
+            ...linked.map((block) => block.nodeId),
+            ...sessionNodes.flatMap((session) => (session.nodeId ? [session.nodeId] : [])),
+          ]),
         );
         if (marks.some((entry) => entry.mark !== null && !allowed.has(entry.nodeId))) {
           throw new AppError(422, messages.eventMarkNotAllowed);

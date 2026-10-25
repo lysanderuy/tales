@@ -71,6 +71,10 @@ export const updateSessionSchema = z
     }),
     methodTag: methodTagSchema.nullable().optional(),
     note: noteSchema.nullable().optional(),
+    eventId: idSchema
+      .nullable()
+      .optional()
+      .meta({ description: "Event this record prepares for. Null clears it." }),
     startedAt: instantSchema.optional(),
     endedAt: instantSchema.optional(),
   })
@@ -109,6 +113,10 @@ export const manualSessionSchema = z
     endedAt: instantSchema,
     methodTag: methodTagSchema.nullable().optional(),
     note: noteSchema.nullable().optional(),
+    eventId: idSchema
+      .nullable()
+      .optional()
+      .meta({ description: "Event this record prepares for." }),
   })
   .refine((value) => value.startedAt.getTime() < value.endedAt.getTime(), {
     message: messages.endBeforeStart,
@@ -156,6 +164,7 @@ export const sessionResponseSchema = z
     methodTag: methodTagSchema.nullable(),
     note: z.string().nullable(),
     blockId: idSchema.nullable().meta({ description: "Planned item ID, null if none." }),
+    eventId: idSchema.nullable().meta({ description: "Event ID, null if none." }),
     startedFrom: z.enum(["free", "planned", "next_up"]),
     startedAt: z.string().datetime(),
     endedAt: z.string().datetime().nullable(),

@@ -43,6 +43,11 @@ describe("updateSessionSchema", () => {
     expect(updateSessionSchema.safeParse({ blockId: id }).success).toBe(true);
     expect(updateSessionSchema.safeParse({ blockId: null }).success).toBe(true);
   });
+  it("allows setting or clearing an event on its own", () => {
+    expect(updateSessionSchema.safeParse({ eventId: id }).success).toBe(true);
+    expect(updateSessionSchema.safeParse({ eventId: null }).success).toBe(true);
+    expect(updateSessionSchema.safeParse({ eventId: "nope" }).success).toBe(false);
+  });
   it("rejects a node and a planned item together", () => {
     expect(updateSessionSchema.safeParse({ nodeId: id, blockId: id }).success).toBe(false);
   });
@@ -88,6 +93,14 @@ describe("manualSessionSchema", () => {
   });
   it("requires a node", () => {
     expect(manualSessionSchema.safeParse({ ...base, nodeId: undefined }).success).toBe(false);
+  });
+  it("accepts an event id, null or nothing", () => {
+    expect(manualSessionSchema.parse({ ...base, eventId: id }).eventId).toBe(id);
+    expect(manualSessionSchema.parse({ ...base, eventId: null }).eventId).toBeNull();
+    expect(manualSessionSchema.parse(base).eventId).toBeUndefined();
+  });
+  it("rejects a non-uuid event id", () => {
+    expect(manualSessionSchema.safeParse({ ...base, eventId: "nope" }).success).toBe(false);
   });
 });
 

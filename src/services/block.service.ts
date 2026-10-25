@@ -8,7 +8,11 @@ import { blocks, events, outlineNodes, studySessions, type Block } from "@/db/sc
 import { AppError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
 import { keepsBlockLink, orderAfterMove, summarizePlanned } from "@/lib/plan/plan";
-import { progressByBlock, studySessionService } from "@/services/study-session.service";
+import {
+  asMissingReference,
+  progressByBlock,
+  studySessionService,
+} from "@/services/study-session.service";
 import type {
   BlockResponse,
   CreateBlockInput,
@@ -160,115 +164,139 @@ export const blockService = {
   },
 
   async create(userId: string, input: CreateBlockInput): Promise<BlockResponse> {
-    return db.transaction(async (tx) => {
-      await lockUser(tx, userId);
-      await assertNodeOwned(tx, userId, input.nodeId);
-      if (input.eventId) await assertEventOwned(tx, userId, input.eventId);
-      const day = await loadDay(tx, userId, input.date);
-      const [created] = await tx
-        .insert(blocks)
-        .values({
-          userId,
-          nodeId: input.nodeId,
-          eventId: input.eventId ?? null,
-          date: input.date,
-          timeOfDay: input.timeOfDay ?? null,
-          plannedMinutes: input.plannedMinutes ?? null,
-          position: Math.max(-1, ...day.map((row) => row.position)) + 1,
-        })
-        .returning();
-      if (input.position !== undefined && input.position < day.length) {
-        const ids = orderAfterMove(
-          day.map((row) => row.id),
-          created.id,
-          input.position,
-        );
-        await renumber(tx, userId, [...day, created], ids);
-      }
-      return loadOne(tx, userId, created.id);
-    });
+    return db
+      .transaction(async (tx) => {
+        await lockUser(tx, userId);
+        await assertNodeOwned(tx, userId, input.nodeId);
+        if (input.eventId) await assertEventOwned(tx, userId, input.eventId);
+        const day = await loadDay(tx, userId, input.date);
+        const [created] = await tx
+          .insert(blocks)
+          .values({
+            userId,
+            nodeId: input.nodeId,
+            eventId: input.eventId ?? null,
+            date: input.date,
+            timeOfDay: input.timeOfDay ?? null,
+            plannedMinutes: input.plannedMinutes ?? null,
+            position: Math.max(-1, ...day.map((row) => row.position)) + 1,
+          })
+          .returning();
+        if (input.position !== undefined && input.position < day.length) {
+          const ids = orderAfterMove(
+            day.map((row) => row.id),
+            created.id,
+            input.position,
+          );
+          await renumber(tx, userId, [...day, created], ids);
+        }
+        return loadOne(tx, userId, created.id);
+      })
+      .catch((error: unknown) => {
+        throw asMissingReference(error);
+      });
   },
 
   async update(userId: string, id: string, patch: UpdateBlockInput): Promise<BlockResponse> {
-    return db.transaction(async (tx) => {
-      await lockUser(tx, userId);
-      const [row] = await tx
-        .select()
-        .from(blocks)
-        .where(owned(blocks, userId, eq(blocks.id, id)))
-        .for("update");
-      if (!row) throw new AppError(404, messages.notFound);
-      if (patch.nodeId !== undefined) await assertNodeOwned(tx, userId, patch.nodeId);
-      if (patch.eventId) await assertEventOwned(tx, userId, patch.eventId);
+    return db
+      .transaction(async (tx) => {
+        await lockUser(tx, userId);
+        const [row] = await tx
+          .select()
+          .from(blocks)
+          .where(owned(blocks, userId, eq(blocks.id, id)))
+          .for("update");
+        if (!row) throw new AppError(404, messages.notFound);
+        if (patch.nodeId !== undefined) await assertNodeOwned(tx, userId, patch.nodeId);
+        if (patch.eventId) await assertEventOwned(tx, userId, patch.eventId);
 
-      const movesDay = patch.date !== undefined && patch.date !== row.date;
-      const targetDate = patch.date ?? row.date;
-      const targetDay = (await loadDay(tx, userId, targetDate)).filter((other) => other.id !== id);
-      const position = movesDay
-        ? (patch.position ?? targetDay.length)
-        : (patch.position ?? row.position);
+        const movesDay = patch.date !== undefined && patch.date !== row.date;
+        const targetDate = patch.date ?? row.date;
+        const targetDay = (await loadDay(tx, userId, targetDate)).filter(
+          (other) => other.id !== id,
+        );
+        const position = movesDay
+          ? (patch.position ?? targetDay.length)
+          : (patch.position ?? row.position);
 
-      await tx
-        .update(blocks)
-        .set({
-          ...(patch.nodeId !== undefined && { nodeId: patch.nodeId }),
-          ...(patch.eventId !== undefined && { eventId: patch.eventId }),
-          ...(movesDay && { date: targetDate }),
-          ...(patch.timeOfDay !== undefined && { timeOfDay: patch.timeOfDay }),
-          ...(patch.plannedMinutes !== undefined && { plannedMinutes: patch.plannedMinutes }),
-          position,
-          updatedAt: new Date(),
-        })
-        .where(owned(blocks, userId, eq(blocks.id, id)));
-
-      if (patch.nodeId !== undefined && patch.nodeId !== row.nodeId) {
-        const newNodeId = patch.nodeId;
-        const outline = await tx
-          .select({
-            id: outlineNodes.id,
-            parentId: outlineNodes.parentId,
-            name: outlineNodes.name,
-            position: outlineNodes.position,
+        await tx
+          .update(blocks)
+          .set({
+            ...(patch.nodeId !== undefined && { nodeId: patch.nodeId }),
+            ...(patch.eventId !== undefined && { eventId: patch.eventId }),
+            ...(movesDay && { date: targetDate }),
+            ...(patch.timeOfDay !== undefined && { timeOfDay: patch.timeOfDay }),
+            ...(patch.plannedMinutes !== undefined && { plannedMinutes: patch.plannedMinutes }),
+            position,
+            updatedAt: new Date(),
           })
-          .from(outlineNodes)
-          .where(owned(outlineNodes, userId));
-        const linked = await tx
-          .select({ id: studySessions.id, nodeId: studySessions.nodeId })
-          .from(studySessions)
-          .where(owned(studySessions, userId, eq(studySessions.blockId, id)));
-        const detach = linked
-          .filter(
-            (session) => !session.nodeId || !keepsBlockLink(outline, newNodeId, session.nodeId),
-          )
-          .map((session) => session.id);
-        if (detach.length > 0) {
+          .where(owned(blocks, userId, eq(blocks.id, id)));
+
+        if (patch.eventId !== undefined && patch.eventId !== row.eventId) {
           await tx
             .update(studySessions)
-            .set({ blockId: null })
-            .where(owned(studySessions, userId, inArray(studySessions.id, detach)));
+            .set({ eventId: patch.eventId })
+            .where(
+              owned(
+                studySessions,
+                userId,
+                eq(studySessions.blockId, id),
+                sql`${studySessions.eventId} is not distinct from ${row.eventId}::uuid`,
+              ),
+            );
         }
-      }
 
-      if (movesDay || patch.position !== undefined) {
-        const moved = { ...row, position, date: targetDate };
-        const ids = orderAfterMove(
-          targetDay.map((other) => other.id),
-          id,
-          position,
-        );
-        await renumber(tx, userId, [...targetDay, moved], ids);
-        if (movesDay) {
-          const oldDay = (await loadDay(tx, userId, row.date)).filter((other) => other.id !== id);
-          await renumber(
-            tx,
-            userId,
-            oldDay,
-            oldDay.map((other) => other.id),
-          );
+        if (patch.nodeId !== undefined && patch.nodeId !== row.nodeId) {
+          const newNodeId = patch.nodeId;
+          const outline = await tx
+            .select({
+              id: outlineNodes.id,
+              parentId: outlineNodes.parentId,
+              name: outlineNodes.name,
+              position: outlineNodes.position,
+            })
+            .from(outlineNodes)
+            .where(owned(outlineNodes, userId));
+          const linked = await tx
+            .select({ id: studySessions.id, nodeId: studySessions.nodeId })
+            .from(studySessions)
+            .where(owned(studySessions, userId, eq(studySessions.blockId, id)));
+          const detach = linked
+            .filter(
+              (session) => !session.nodeId || !keepsBlockLink(outline, newNodeId, session.nodeId),
+            )
+            .map((session) => session.id);
+          if (detach.length > 0) {
+            await tx
+              .update(studySessions)
+              .set({ blockId: null })
+              .where(owned(studySessions, userId, inArray(studySessions.id, detach)));
+          }
         }
-      }
-      return loadOne(tx, userId, id);
-    });
+
+        if (movesDay || patch.position !== undefined) {
+          const moved = { ...row, position, date: targetDate };
+          const ids = orderAfterMove(
+            targetDay.map((other) => other.id),
+            id,
+            position,
+          );
+          await renumber(tx, userId, [...targetDay, moved], ids);
+          if (movesDay) {
+            const oldDay = (await loadDay(tx, userId, row.date)).filter((other) => other.id !== id);
+            await renumber(
+              tx,
+              userId,
+              oldDay,
+              oldDay.map((other) => other.id),
+            );
+          }
+        }
+        return loadOne(tx, userId, id);
+      })
+      .catch((error: unknown) => {
+        throw asMissingReference(error);
+      });
   },
 
   async reorder(userId: string, input: ReorderBlocksInput): Promise<BlockResponse[]> {

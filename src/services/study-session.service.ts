@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { owned } from "@/db/owned";
 import {
   blocks,
+  events,
   outlineNodes,
   profiles,
   sessionPauses,
@@ -17,6 +18,7 @@ import {
 import { AppError, mapDbError } from "@/lib/api/response";
 import { messages } from "@/lib/messages";
 import { descendantIds, pathOf, type OutlineRow } from "@/lib/outline/tree";
+import { resolveSessionEvent } from "@/lib/events/session-event";
 import { keepsBlockLink, playMinutes } from "@/lib/plan/plan";
 import {
   addDays,
@@ -66,6 +68,12 @@ function isUniqueOrOverlapViolation(error: unknown): boolean {
   );
 }
 
+export function asMissingReference(error: unknown): unknown {
+  return mapDbError(error)?.message === messages.conflictReference
+    ? new AppError(404, messages.notFound)
+    : error;
+}
+
 function toResponse(row: StudySession, pauses: SessionPause[], now: Date): SessionResponse {
   const timer = {
     startedAt: row.startedAt,
@@ -77,6 +85,7 @@ function toResponse(row: StudySession, pauses: SessionPause[], now: Date): Sessi
     id: row.id,
     nodeId: row.nodeId,
     blockId: row.blockId,
+    eventId: row.eventId,
     plannedMinutes: row.plannedMinutes,
     methodTag: row.methodTag,
     note: row.note,
@@ -163,6 +172,18 @@ async function assertNodeOwned(executor: Executor, userId: string, nodeId: strin
   if (!found) throw new AppError(404, messages.notFound);
 }
 
+async function assertEventOwned(
+  executor: Executor,
+  userId: string,
+  eventId: string,
+): Promise<void> {
+  const [found] = await executor
+    .select({ id: events.id })
+    .from(events)
+    .where(owned(events, userId, eq(events.id, eventId)));
+  if (!found) throw new AppError(404, messages.notFound);
+}
+
 async function loadBlock(executor: Executor, userId: string, id: string): Promise<Block> {
   const [row] = await executor
     .select()
@@ -219,16 +240,11 @@ export interface FinishedSession {
   seconds: number;
 }
 
-export async function sessionsByBlock(
+export async function sessionsForEvent(
   executor: Executor,
   userId: string,
-  blockIds: string[],
+  eventId: string,
 ): Promise<FinishedSession[]> {
-  if (blockIds.length === 0) return [];
-  const ids = sql.join(
-    blockIds.map((id) => sql`${id}`),
-    sql`, `,
-  );
   const rows = await executor.execute<{
     id: string;
     node_id: string;
@@ -238,12 +254,11 @@ export async function sessionsByBlock(
   }>(sql`
     select
       s.id,
-      coalesce(s.node_id, b.node_id) as node_id,
+      s.node_id,
       s.started_at,
       s.ended_at,
       greatest(extract(epoch from (s.ended_at - s.started_at)) - coalesce(p.paused_seconds, 0), 0) as seconds
     from study_sessions s
-    join blocks b on b.id = s.block_id and b.user_id = s.user_id
     left join lateral (
       select sum(extract(epoch from (coalesce(sp.resumed_at, s.ended_at) - sp.paused_at))) as paused_seconds
       from session_pauses sp
@@ -251,7 +266,8 @@ export async function sessionsByBlock(
     ) p on true
     where s.user_id = ${userId}
       and s.ended_at is not null
-      and s.block_id in (${ids})
+      and s.node_id is not null
+      and s.event_id = ${eventId}
     order by s.started_at desc, s.id desc
   `);
   return rows.map((row) => ({
@@ -342,12 +358,14 @@ export const studySessionService = {
         if (input.nodeId) await assertNodeOwned(tx, userId, input.nodeId);
         let nodeId = input.nodeId ?? null;
         let blockId: string | null = null;
+        let eventId: string | null = null;
         let plannedMinutes = input.plannedMinutes ?? null;
         if (input.blockId) {
           const block = await loadBlock(tx, userId, input.blockId);
           if (nodeId === null || (await keepsLink(tx, userId, block, nodeId))) {
             nodeId = nodeId ?? block.nodeId;
             blockId = block.id;
+            eventId = block.eventId;
             if (input.plannedMinutes === undefined) {
               const progress = (await progressByBlock(tx, userId, [block.id])).get(block.id) ?? 0;
               plannedMinutes = playMinutes(block.plannedMinutes, progress);
@@ -360,6 +378,7 @@ export const studySessionService = {
             userId,
             nodeId,
             blockId,
+            eventId,
             plannedMinutes,
             startedFrom: input.startedFrom,
             startedAt: now,
@@ -370,7 +389,7 @@ export const studySessionService = {
       });
       return { session, created: true };
     } catch (error) {
-      if (!isUniqueOrOverlapViolation(error)) throw error;
+      if (!isUniqueOrOverlapViolation(error)) throw asMissingReference(error);
       const live = await findLive(db, userId);
       if (!live) throw error;
       return { session: await loadResponse(db, userId, live.id, now), created: false };
@@ -512,53 +531,66 @@ export const studySessionService = {
 
   async update(userId: string, id: string, patch: UpdateSessionInput): Promise<SessionResponse> {
     const now = new Date();
-    return db.transaction(async (tx) => {
-      const row = await lockRecord(tx, userId, id);
-      if (patch.nodeId !== undefined) await assertNodeOwned(tx, userId, patch.nodeId);
+    return db
+      .transaction(async (tx) => {
+        const row = await lockRecord(tx, userId, id);
+        if (patch.nodeId !== undefined) await assertNodeOwned(tx, userId, patch.nodeId);
+        if (patch.eventId) await assertEventOwned(tx, userId, patch.eventId);
 
-      let nextNodeId = patch.nodeId;
-      let nextBlockId: string | null | undefined;
-      if (patch.blockId) {
-        const block = await loadBlock(tx, userId, patch.blockId);
-        nextNodeId = block.nodeId;
-        nextBlockId = block.id;
-      } else if (patch.blockId === null) {
-        nextBlockId = null;
-      } else if (patch.nodeId !== undefined && row.blockId) {
-        const [current] = await tx
-          .select()
-          .from(blocks)
-          .where(owned(blocks, userId, eq(blocks.id, row.blockId)));
-        if (!current || !(await keepsLink(tx, userId, current, patch.nodeId))) nextBlockId = null;
-      }
+        let nextNodeId = patch.nodeId;
+        let nextBlockId: string | null | undefined;
+        let nextEventId: string | null | undefined = patch.eventId;
+        if (patch.blockId) {
+          const block = await loadBlock(tx, userId, patch.blockId);
+          nextNodeId = block.nodeId;
+          nextBlockId = block.id;
+          nextEventId = resolveSessionEvent({
+            explicit: patch.eventId,
+            current: row.eventId,
+            blockEventId: block.eventId,
+            blockAttached: true,
+          });
+        } else if (patch.blockId === null) {
+          nextBlockId = null;
+        } else if (patch.nodeId !== undefined && row.blockId) {
+          const [current] = await tx
+            .select()
+            .from(blocks)
+            .where(owned(blocks, userId, eq(blocks.id, row.blockId)));
+          if (!current || !(await keepsLink(tx, userId, current, patch.nodeId))) nextBlockId = null;
+        }
 
-      const editsTimes = patch.startedAt !== undefined || patch.endedAt !== undefined;
-      if (editsTimes) {
-        if (row.endedAt === null) throw new AppError(422, messages.timesEditStopped);
-        const start = patch.startedAt ?? row.startedAt;
-        const end = patch.endedAt ?? row.endedAt;
-        if (end.getTime() <= start.getTime()) throw new AppError(422, messages.endBeforeStart);
-        if (end.getTime() > now.getTime()) throw new AppError(422, messages.timeInFuture);
-        await assertNoOverlap(tx, userId, { start, end }, id, now);
+        const editsTimes = patch.startedAt !== undefined || patch.endedAt !== undefined;
+        if (editsTimes) {
+          if (row.endedAt === null) throw new AppError(422, messages.timesEditStopped);
+          const start = patch.startedAt ?? row.startedAt;
+          const end = patch.endedAt ?? row.endedAt;
+          if (end.getTime() <= start.getTime()) throw new AppError(422, messages.endBeforeStart);
+          if (end.getTime() > now.getTime()) throw new AppError(422, messages.timeInFuture);
+          await assertNoOverlap(tx, userId, { start, end }, id, now);
+          await tx
+            .delete(sessionPauses)
+            .where(owned(sessionPauses, userId, eq(sessionPauses.sessionId, id)));
+        }
+
         await tx
-          .delete(sessionPauses)
-          .where(owned(sessionPauses, userId, eq(sessionPauses.sessionId, id)));
-      }
-
-      await tx
-        .update(studySessions)
-        .set({
-          ...(nextNodeId !== undefined && { nodeId: nextNodeId }),
-          ...(nextBlockId !== undefined && { blockId: nextBlockId }),
-          ...(patch.methodTag !== undefined && { methodTag: patch.methodTag }),
-          ...(patch.note !== undefined && { note: patch.note }),
-          ...(patch.startedAt !== undefined && { startedAt: patch.startedAt }),
-          ...(patch.endedAt !== undefined && { endedAt: patch.endedAt }),
-          updatedAt: now,
-        })
-        .where(owned(studySessions, userId, eq(studySessions.id, id)));
-      return loadResponse(tx, userId, id, now);
-    });
+          .update(studySessions)
+          .set({
+            ...(nextNodeId !== undefined && { nodeId: nextNodeId }),
+            ...(nextBlockId !== undefined && { blockId: nextBlockId }),
+            ...(patch.methodTag !== undefined && { methodTag: patch.methodTag }),
+            ...(patch.note !== undefined && { note: patch.note }),
+            ...(nextEventId !== undefined && { eventId: nextEventId }),
+            ...(patch.startedAt !== undefined && { startedAt: patch.startedAt }),
+            ...(patch.endedAt !== undefined && { endedAt: patch.endedAt }),
+            updatedAt: now,
+          })
+          .where(owned(studySessions, userId, eq(studySessions.id, id)));
+        return loadResponse(tx, userId, id, now);
+      })
+      .catch((error: unknown) => {
+        throw asMissingReference(error);
+      });
   },
 
   async remove(userId: string, id: string): Promise<void> {
@@ -572,30 +604,52 @@ export const studySessionService = {
   async logManual(userId: string, input: ManualSessionInput): Promise<SessionResponse> {
     const now = new Date();
     if (input.endedAt.getTime() > now.getTime()) throw new AppError(422, messages.timeInFuture);
-    return db.transaction(async (tx) => {
-      await assertNodeOwned(tx, userId, input.nodeId);
-      let blockId: string | null = null;
-      if (input.blockId) {
-        const block = await loadBlock(tx, userId, input.blockId);
-        if (await keepsLink(tx, userId, block, input.nodeId)) blockId = block.id;
-      }
-      await assertNoOverlap(tx, userId, { start: input.startedAt, end: input.endedAt }, null, now);
-      const [created] = await tx
-        .insert(studySessions)
-        .values({
+    return db
+      .transaction(async (tx) => {
+        await assertNodeOwned(tx, userId, input.nodeId);
+        if (input.eventId) await assertEventOwned(tx, userId, input.eventId);
+        let blockId: string | null = null;
+        let eventId: string | null = input.eventId ?? null;
+        if (input.blockId) {
+          const block = await loadBlock(tx, userId, input.blockId);
+          if (await keepsLink(tx, userId, block, input.nodeId)) {
+            blockId = block.id;
+            eventId =
+              resolveSessionEvent({
+                explicit: input.eventId,
+                current: null,
+                blockEventId: block.eventId,
+                blockAttached: true,
+              }) ?? null;
+          }
+        }
+        await assertNoOverlap(
+          tx,
           userId,
-          nodeId: input.nodeId,
-          blockId,
-          startedAt: input.startedAt,
-          endedAt: input.endedAt,
-          methodTag: input.methodTag ?? null,
-          note: input.note ?? null,
-          startedFrom: "free",
-          lastHeartbeatAt: input.endedAt,
-        })
-        .returning({ id: studySessions.id });
-      return loadResponse(tx, userId, created.id, now);
-    });
+          { start: input.startedAt, end: input.endedAt },
+          null,
+          now,
+        );
+        const [created] = await tx
+          .insert(studySessions)
+          .values({
+            userId,
+            nodeId: input.nodeId,
+            blockId,
+            eventId,
+            startedAt: input.startedAt,
+            endedAt: input.endedAt,
+            methodTag: input.methodTag ?? null,
+            note: input.note ?? null,
+            startedFrom: "free",
+            lastHeartbeatAt: input.endedAt,
+          })
+          .returning({ id: studySessions.id });
+        return loadResponse(tx, userId, created.id, now);
+      })
+      .catch((error: unknown) => {
+        throw asMissingReference(error);
+      });
   },
 
   async list(

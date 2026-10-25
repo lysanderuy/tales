@@ -159,9 +159,9 @@ export const eventDetailResponseSchema = z
         }),
       )
       .meta({ description: "Planned items tied to this event." }),
-    sessionSecondsByNode: z
-      .array(z.object({ nodeId: nodeIdSchema, seconds: z.number() }))
-      .meta({ description: "Time studied through the planned items, by Subject or Topic." }),
+    sessionSecondsByNode: z.array(z.object({ nodeId: nodeIdSchema, seconds: z.number() })).meta({
+      description: "Time studied in records counted for this event, by Subject or Topic.",
+    }),
     sessions: z
       .array(
         z.object({
@@ -173,7 +173,7 @@ export const eventDetailResponseSchema = z
         }),
       )
       .meta({
-        description: "Finished study sessions through the planned items, newest first.",
+        description: "Finished study records counted for this event, newest first.",
       }),
     marks: z.array(z.object({ nodeId: nodeIdSchema, mark: markSchema })),
     createdAt: z.string().datetime(),
