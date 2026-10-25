@@ -179,6 +179,7 @@ type PlanRowProps = {
   block: BlockResponse;
   lookup: PlanLookup;
   past: boolean;
+  missed: boolean;
   canStart: boolean;
   starting: boolean;
   records: readonly RecordChoice[];
@@ -197,6 +198,7 @@ export function PlanRow({
   block,
   lookup,
   past,
+  missed,
   canStart,
   starting,
   records,
@@ -250,7 +252,7 @@ export function PlanRow({
   return (
     <li className="relative flex items-center gap-3.5 border-t border-border py-3.5 first:border-t-0 first:pt-0">
       {past && records.length > 1 ? (
-        <div className={mainClass}>
+        <div className={cn(mainClass, missed && "opacity-70")}>
           <button
             type="button"
             onClick={(event) => onOpen(block, event.currentTarget)}
@@ -273,7 +275,7 @@ export function PlanRow({
         <button
           type="button"
           onClick={(event) => onOpen(block, event.currentTarget)}
-          className={mainClass}
+          className={cn(mainClass, missed && "opacity-70")}
         >
           {summary}
           <span className={detailClass}>
@@ -350,6 +352,17 @@ export function PlanEventRow({ event, lookup, spacer }: PlanEventRowProps) {
     .map(({ info }) => info.name)
     .join(", ");
 
+  const action =
+    event.state === "ready_to_close" ? (
+      <Link
+        href={`/events?event=${event.id}`}
+        aria-label={`${messages.eventsMarkDone}: ${event.title}`}
+        className="press inline-flex h-8 items-center rounded-full bg-primary-soft px-3.5 text-small font-semibold text-primary hover:opacity-80"
+      >
+        {messages.eventsMarkDone}
+      </Link>
+    ) : null;
+
   return (
     <li className="py-1.5 first:pt-0">
       <div className="-mx-2 flex items-center gap-3.5 rounded-row bg-fill px-2 py-2.5">
@@ -368,19 +381,16 @@ export function PlanEventRow({ event, lookup, spacer }: PlanEventRowProps) {
             </span>
           ) : null}
         </span>
-        <span className={detailClass}>
-          {event.state === "closed" ? messages.planEventClosed : ""}
-          {event.state === "ready_to_close" ? (
-            <Link
-              href={`/events?event=${event.id}`}
-              aria-label={messages.planEventCloseLabel(event.title)}
-              className="press inline-flex h-8 items-center rounded-full bg-primary-soft px-3.5 text-small font-semibold text-primary hover:opacity-80"
-            >
-              {messages.planEventClose}
-            </Link>
-          ) : null}
-        </span>
-        {spacer ? <span aria-hidden="true" className="size-11 shrink-0" /> : null}
+        {spacer && action ? (
+          <span className="flex min-w-11 shrink-0 justify-end">{action}</span>
+        ) : (
+          <>
+            <span className={detailClass}>
+              {event.state === "closed" ? messages.planEventClosed : action}
+            </span>
+            {spacer ? <span aria-hidden="true" className="size-11 shrink-0" /> : null}
+          </>
+        )}
       </div>
     </li>
   );

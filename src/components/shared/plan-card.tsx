@@ -230,9 +230,9 @@ export function PlanEventCard({ event, lookup }: PlanEventCardProps) {
         {event.state === "ready_to_close" ? (
           <Link
             href={`/events?event=${event.id}`}
-            className="num mt-2 block text-caption text-text-soft hover:text-text hover:underline"
+            className="num mt-2 block text-caption text-text-soft underline decoration-dotted underline-offset-2 hover:text-text"
           >
-            {messages.planEventReadyToClose}
+            {messages.eventsMarkDone}
           </Link>
         ) : null}
       </div>

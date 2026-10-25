@@ -132,7 +132,7 @@ export function PlanDayView({
         {untimedEvents.length > 0 ? (
           <ul className="mb-5">
             {untimedEvents.map((event) => (
-              <PlanEventRow key={event.id} event={event} lookup={lookup} />
+              <PlanEventRow key={event.id} event={event} lookup={lookup} spacer={canStart} />
             ))}
           </ul>
         ) : null}
@@ -153,7 +153,14 @@ export function PlanDayView({
               <ul>
                 {group.items.map((item) => {
                   if (item.kind === "event") {
-                    return <PlanEventRow key={item.event.id} event={item.event} lookup={lookup} />;
+                    return (
+                      <PlanEventRow
+                        key={item.event.id}
+                        event={item.event}
+                        lookup={lookup}
+                        spacer={canStart}
+                      />
+                    );
                   }
                   return item.kind === "block" ? (
                     <PlanRow
@@ -161,6 +168,7 @@ export function PlanDayView({
                       block={item.block}
                       lookup={lookup}
                       past={past}
+                      missed={date < today && item.block.progressSeconds === 0}
                       canStart={canStart}
                       starting={starting}
                       records={choicesByBlock.get(item.block.id) ?? []}
