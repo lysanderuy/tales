@@ -156,6 +156,7 @@ function EndScreenDialog({ record }: { record: SessionResponse }) {
               eventId={edits.eventId}
               nodeId={edits.nodeId}
               today={today}
+              past
               onChange={(eventId) => patch({ eventId })}
             />
           </Section>

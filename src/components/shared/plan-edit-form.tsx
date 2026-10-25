@@ -170,6 +170,7 @@ type EventLinkFieldProps = {
   eventId: string | null;
   nodeId: string | null;
   today: string;
+  past?: boolean;
   onChange: (eventId: string | null) => void;
   onOpenChange?: (open: boolean) => void;
 };
@@ -196,10 +197,12 @@ export function EventLinkBody({
   eventId,
   nodeId,
   today,
+  past,
   onChange,
   onOpenChange,
 }: EventLinkFieldProps) {
   const { candidates, visible } = useEventCandidates(eventId, nodeId);
+  const question = past ? messages.planEventPlaceholderPast : messages.planEventPlaceholder;
   const [open, setOpen] = useState(false);
   const [button, setButton] = useState<HTMLButtonElement | null>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -231,7 +234,7 @@ export function EventLinkBody({
             ) : null}
           </>
         ) : (
-          <span className="text-text-faint">{messages.planEventPlaceholder}</span>
+          <span className="text-text-faint">{question}</span>
         )}
       </button>
       {open ? (
@@ -240,6 +243,7 @@ export function EventLinkBody({
           events={candidates}
           selectedId={eventId}
           today={today}
+          label={question}
           onPick={onChange}
           onClose={close}
         />

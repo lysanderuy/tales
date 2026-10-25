@@ -131,6 +131,7 @@ export function LogStudyForm({
         eventId={eventId}
         nodeId={nodeId}
         today={today}
+        past
         onChange={setEventId}
         onOpenChange={setEventPickerOpen}
       />

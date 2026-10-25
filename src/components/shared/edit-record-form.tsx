@@ -169,6 +169,7 @@ export function EditRecordForm({
           eventId={edits.eventId}
           nodeId={edits.nodeId}
           today={today}
+          past
           onChange={(eventId) => patch({ eventId })}
           onOpenChange={setEventOpen}
         />

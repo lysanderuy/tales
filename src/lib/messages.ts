@@ -170,6 +170,7 @@ export const messages = {
   planDeleteThis: "Delete this one",
   planEventLabel: "Event",
   planEventPlaceholder: "Is this for an event?",
+  planEventPlaceholderPast: "Was this for an event?",
   planNoEvent: "Not for an event",
   planEventFallback: "Event",
   planPlanStudy: "Plan study",

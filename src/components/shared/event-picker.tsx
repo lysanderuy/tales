@@ -20,6 +20,7 @@ type EventPickerProps = {
   events: readonly EventSummaryResponse[];
   selectedId: string | null;
   today: string;
+  label: string;
   onPick: (eventId: string | null) => void;
   onClose: () => void;
 };
@@ -29,6 +30,7 @@ export function EventPicker({
   events,
   selectedId,
   today,
+  label,
   onPick,
   onClose,
 }: EventPickerProps) {
@@ -107,7 +109,7 @@ export function EventPicker({
     <div ref={rootRef} onKeyDown={onKeyDown}>
       <div
         role="dialog"
-        aria-label={messages.planEventPlaceholder}
+        aria-label={label}
         data-picker-scope=""
         className={surfaceClass}
         style={{ left: placement.left, width: PICKER_WIDTH, ...verticalStyle }}
