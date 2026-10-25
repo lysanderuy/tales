@@ -31,6 +31,14 @@ export function TodayView() {
 
   const index = useMemo(() => buildSubjectIndex(subjects.data ?? []), [subjects.data]);
 
+  const archived = useMemo(
+    () =>
+      new Set(
+        (subjects.data ?? []).filter((node) => node.effectivelyArchived).map((node) => node.id),
+      ),
+    [subjects.data],
+  );
+
   if (today.isError && !today.data) {
     return (
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 pb-[72px] pt-8">
@@ -57,7 +65,15 @@ export function TodayView() {
       className={narrow}
     />
   );
-  const study = <TodaysStudyCard rows={data.rows} index={index} className={wide} />;
+  const study = (
+    <TodaysStudyCard
+      rows={data.rows}
+      index={index}
+      archived={archived}
+      todayDate={data.todayDate}
+      className={wide}
+    />
+  );
 
   return (
     <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 pb-[72px] pt-8">

@@ -1,9 +1,13 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 
 import { CardHeader } from "@/components/shared/card-header";
 import { PlayIcon } from "@/components/shared/icons";
+import { LogStudyDialog } from "@/components/shared/log-study-dialog";
+import { AddMenu } from "@/components/shared/plan-controls";
+import { PlanEditDialog } from "@/components/shared/plan-edit-dialog";
+import type { PlanLookup } from "@/components/shared/plan-row";
 import { RecordChooser, type RecordChoice } from "@/components/shared/record-chooser";
 import { EditRecordDialog } from "@/components/shared/edit-record-dialog";
 import { Card } from "@/components/ui/card";
@@ -11,6 +15,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Swatch } from "@/components/ui/swatch";
 import { useActiveSession, useSessionClock } from "@/hooks/use-session-clock";
 import { useOpenFocus } from "@/hooks/use-open-focus";
+import { useProfile } from "@/hooks/use-profile";
 import { useStartBlock } from "@/hooks/use-start-block";
 import { useStartSession } from "@/hooks/use-start-session";
 import { cn } from "@/lib/cn";
@@ -35,6 +40,8 @@ type TodayRow = TodayResponse["rows"][number];
 type TodaysStudyCardProps = {
   rows: TodayResponse["rows"];
   index: SubjectIndex;
+  archived: ReadonlySet<string>;
+  todayDate: string;
   className?: string;
 };
 
@@ -139,7 +146,13 @@ function LiveClockText({ fallback }: { fallback: string }) {
   return <>{display ? display.text : fallback}</>;
 }
 
-export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps) {
+export function TodaysStudyCard({
+  rows,
+  index,
+  archived,
+  todayDate,
+  className,
+}: TodaysStudyCardProps) {
   const views = rows.map((row) => toRowView(row, index));
   const session = useActiveSession();
   const startBlock = useStartBlock();
@@ -147,6 +160,10 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
   const openFocus = useOpenFocus();
   const starting = startBlock.isPending || startSession.isPending;
   const [editing, setEditing] = useState<{ id: string; opener: HTMLElement | null } | null>(null);
+  const [planning, setPlanning] = useState<{ opener: HTMLElement } | null>(null);
+  const [logging, setLogging] = useState<{ opener: HTMLElement } | null>(null);
+  const profile = useProfile();
+  const lookup = useMemo<PlanLookup>(() => ({ index, archived }), [index, archived]);
 
   const play = (start: NonNullable<RowView["start"]>) => {
     unlockAudio();
@@ -159,7 +176,16 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
   return (
     <>
       <Card className={className}>
-        <CardHeader title={messages.todayTodaysStudy} />
+        <CardHeader
+          title={messages.todayTodaysStudy}
+          action={
+            <AddMenu
+              align="right"
+              onPlan={(opener) => setPlanning({ opener })}
+              onLog={(opener) => setLogging({ opener })}
+            />
+          }
+        />
         {views.length === 0 ? (
           <p className="py-1 text-ui text-text-faint">{messages.todayEmpty}</p>
         ) : (
@@ -242,6 +268,26 @@ export function TodaysStudyCard({ rows, index, className }: TodaysStudyCardProps
           </ul>
         )}
       </Card>
+      {planning ? (
+        <PlanEditDialog
+          block={null}
+          defaultDate={todayDate}
+          today={todayDate}
+          lookup={lookup}
+          opener={planning.opener}
+          onClose={() => setPlanning(null)}
+        />
+      ) : null}
+      {logging && profile.data ? (
+        <LogStudyDialog
+          defaultDate={todayDate}
+          today={todayDate}
+          timeZone={profile.data.timeZone}
+          lookup={lookup}
+          opener={logging.opener}
+          onClose={() => setLogging(null)}
+        />
+      ) : null}
       {editing ? (
         <EditRecordDialog
           recordId={editing.id}
