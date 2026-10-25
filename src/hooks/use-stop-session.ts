@@ -2,11 +2,10 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { applySessionResult } from "@/hooks/use-current-session";
+import { applySessionResult, setJustStopped } from "@/hooks/use-current-session";
 import { invalidatePlanData } from "@/hooks/use-plan-blocks";
 import { api } from "@/lib/api/client";
 import { useToastStore } from "@/stores/toast.store";
-import { useUiStore } from "@/stores/ui.store";
 import type { SessionResponse } from "@/validators/study-session.validator";
 
 export interface StopSessionVariables {
@@ -24,7 +23,7 @@ export function useStopSession() {
     onSuccess: (session) => {
       applySessionResult(queryClient, session);
       invalidatePlanData(queryClient);
-      useUiStore.getState().setJustStopped(session);
+      setJustStopped(queryClient, session);
     },
     onError: showError,
   });

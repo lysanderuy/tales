@@ -20,9 +20,20 @@ export function useCurrentSession() {
   });
 }
 
+export const justStoppedKey = ["sessions", "just-stopped"] as const;
+
+export function setJustStopped(queryClient: QueryClient, session: SessionResponse | null): void {
+  queryClient.setQueryData<SessionResponse | null>(justStoppedKey, session);
+}
+
 export function useEndRecord(): SessionResponse | null {
   const { data } = useCurrentSession();
-  const justStopped = useUiStore((state) => state.justStopped);
+  const { data: justStopped = null } = useQuery<SessionResponse | null>({
+    queryKey: justStoppedKey,
+    queryFn: () => null,
+    enabled: false,
+    staleTime: Infinity,
+  });
   return data?.session?.state === "stopped" ? data.session : justStopped;
 }
 

@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 import { EndScreenDiscard } from "@/components/shared/end-screen-discard";
 import { EndScreenMethods } from "@/components/shared/end-screen-methods";
 import { EndScreenNextUp } from "@/components/shared/end-screen-next-up";
 import { EndScreenSubject } from "@/components/shared/end-screen-subject";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { useEndRecord } from "@/hooks/use-current-session";
+import { setJustStopped, useEndRecord } from "@/hooks/use-current-session";
 import { useDeleteSession } from "@/hooks/use-delete-session";
 import { useOpenFocus } from "@/hooks/use-open-focus";
 import { useStartBlock } from "@/hooks/use-start-block";
@@ -19,7 +21,6 @@ import { buildEndScreenUpdate, editsFromRecord, type EndScreenEdits } from "@/li
 import { formatSeconds, splitTotal } from "@/lib/today/format";
 import { buildSubjectIndex, resolveSubject } from "@/lib/today/subject-index";
 import { useToastStore } from "@/stores/toast.store";
-import { useUiStore } from "@/stores/ui.store";
 import type { SessionResponse } from "@/validators/study-session.validator";
 
 const NOTE_MAX_LENGTH = 5000;
@@ -38,7 +39,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 }
 
 function EndScreenDialog({ record }: { record: SessionResponse }) {
-  const setJustStopped = useUiStore((state) => state.setJustStopped);
+  const queryClient = useQueryClient();
   const show = useToastStore((state) => state.show);
   const update = useUpdateSession();
   const remove = useDeleteSession();
@@ -76,7 +77,7 @@ function EndScreenDialog({ record }: { record: SessionResponse }) {
       id: record.id,
       ...buildEndScreenUpdate(record, edits),
     });
-    setJustStopped(saved);
+    setJustStopped(queryClient, saved);
   };
 
   const run = async (action: () => Promise<void>) => {
@@ -94,20 +95,20 @@ function EndScreenDialog({ record }: { record: SessionResponse }) {
     run(async () => {
       await commit();
       show(messages.endSaved(formatSeconds(record.activeSeconds), subject?.name ?? ""));
-      setJustStopped(null);
+      setJustStopped(queryClient, null);
     });
 
   const onDiscard = () =>
     run(async () => {
       await remove.mutateAsync(record.id);
-      setJustStopped(null);
+      setJustStopped(queryClient, null);
     });
 
   const onNextUp = (blockId: string) =>
     run(async () => {
       await commit();
       const started = await startBlock.mutateAsync({ blockId, startedFrom: "next_up" });
-      setJustStopped(null);
+      setJustStopped(queryClient, null);
       openFocus(started);
     });
 
