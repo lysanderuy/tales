@@ -7,7 +7,7 @@ import type { TodayResponse } from "@/validators/today.validator";
 
 type NextEvent = NonNullable<TodayResponse["nextEvent"]>;
 
-const leadClass = "mt-4 max-w-[28ch] text-h1 font-normal leading-tight tracking-[-0.02em]";
+const leadClass = "mt-4 max-w-[30ch] text-h1 font-normal leading-tight tracking-[-0.02em]";
 
 export function HeroCard({ hero, className }: { hero: HeroState<NextEvent>; className?: string }) {
   const { boards, lead, line, event } = hero;
@@ -57,7 +57,7 @@ export function HeroCard({ hero, className }: { hero: HeroState<NextEvent>; clas
           </div>
         ) : null}
       </div>
-      {line ? <p className="mt-6 max-w-[40ch] text-ui text-on-hero-soft">{line}</p> : null}
+      {line ? <p className="mt-6 max-w-[48ch] text-ui text-on-hero-soft">{line}</p> : null}
     </section>
   );
 }
