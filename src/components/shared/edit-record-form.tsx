@@ -8,12 +8,14 @@ import { EndScreenDiscard } from "@/components/shared/end-screen-discard";
 import { EndScreenMethods } from "@/components/shared/end-screen-methods";
 import { Section, failureText } from "@/components/shared/form-parts";
 import { CloseIcon } from "@/components/shared/icons";
+import { EventLinkField } from "@/components/shared/plan-edit-form";
 import { TimeField } from "@/components/shared/time-field";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { useDeleteSession } from "@/hooks/use-delete-session";
 import { sessionKeys } from "@/hooks/use-session";
 import { useSubjects } from "@/hooks/use-subjects";
+import { useToday } from "@/hooks/use-today";
 import { useUpdateSession } from "@/hooks/use-update-session";
 import { messages } from "@/lib/messages";
 import { localDateKey } from "@/lib/time/zone";
@@ -49,14 +51,17 @@ export function EditRecordForm({
   const [edits, setEdits] = useState<RecordEdits>(() => recordEdits(record, timeZone));
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [eventOpen, setEventOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [startValid, setStartValid] = useState(true);
   const [endValid, setEndValid] = useState(true);
   const busy = update.isPending || remove.isPending;
 
   useEffect(() => {
-    onOverlayChange(pickerOpen || confirmOpen);
-  }, [pickerOpen, confirmOpen, onOverlayChange]);
+    onOverlayChange(pickerOpen || eventOpen || confirmOpen);
+  }, [pickerOpen, eventOpen, confirmOpen, onOverlayChange]);
+
+  const today = useToday().data?.todayDate;
 
   const index = useMemo(() => buildSubjectIndex(subjects.data ?? []), [subjects.data]);
   const subject = edits.nodeId
@@ -158,6 +163,16 @@ export function EditRecordForm({
           </div>
         ) : null}
       </div>
+
+      {today ? (
+        <EventLinkField
+          eventId={edits.eventId}
+          nodeId={edits.nodeId}
+          today={today}
+          onChange={(eventId) => patch({ eventId })}
+          onOpenChange={setEventOpen}
+        />
+      ) : null}
 
       <Section label={messages.endMethod}>
         <EndScreenMethods value={edits.methodTag} onChange={(methodTag) => patch({ methodTag })} />

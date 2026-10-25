@@ -15,12 +15,13 @@ export interface RecordEdits extends EndScreenEdits {
 
 export type EditableRecord = Pick<
   SessionResponse,
-  "nodeId" | "blockId" | "methodTag" | "note" | "startedAt" | "endedAt"
+  "nodeId" | "blockId" | "eventId" | "methodTag" | "note" | "startedAt" | "endedAt"
 >;
 
 export interface RecordPatch {
   nodeId?: string;
   blockId?: string;
+  eventId?: string | null;
   methodTag?: EndMethodTag | null;
   note?: string | null;
   startedAt?: string;
@@ -52,6 +53,7 @@ export function buildRecordPatch(
   timeZone: string,
 ): RecordPatchResult {
   const patch: RecordPatch = { ...subjectUpdate(record, edits) };
+  if (edits.eventId !== record.eventId) patch.eventId = edits.eventId;
   if (edits.methodTag !== record.methodTag) patch.methodTag = edits.methodTag;
   const note = normalizeNote(edits.note);
   if (note !== normalizeNote(record.note ?? "")) patch.note = note;

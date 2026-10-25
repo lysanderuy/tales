@@ -8,6 +8,7 @@ import { EndScreenDiscard } from "@/components/shared/end-screen-discard";
 import { EndScreenMethods } from "@/components/shared/end-screen-methods";
 import { EndScreenNextUp } from "@/components/shared/end-screen-next-up";
 import { EndScreenSubject } from "@/components/shared/end-screen-subject";
+import { EventLinkBody, useEventCandidates } from "@/components/shared/plan-edit-form";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { setJustStopped, useEndRecord } from "@/hooks/use-current-session";
@@ -15,6 +16,7 @@ import { useDeleteSession } from "@/hooks/use-delete-session";
 import { useOpenFocus } from "@/hooks/use-open-focus";
 import { useStartBlock } from "@/hooks/use-start-block";
 import { useSubjects } from "@/hooks/use-subjects";
+import { useToday } from "@/hooks/use-today";
 import { useUpdateSession } from "@/hooks/use-update-session";
 import { messages } from "@/lib/messages";
 import { buildEndScreenUpdate, editsFromRecord, type EndScreenEdits } from "@/lib/timer/end-screen";
@@ -57,6 +59,8 @@ function EndScreenDialog({ record }: { record: SessionResponse }) {
       ? resolveSubject(index, edits.nodeId, messages.todayUnknownSubject)
       : (index.get(edits.nodeId) ?? null)
     : null;
+  const today = useToday().data?.todayDate;
+  const { visible: eventVisible } = useEventCandidates(edits.eventId, edits.nodeId);
   const hasSubject = edits.nodeId !== null;
   const { hours, minutes } = splitTotal(record.activeSeconds);
 
@@ -145,6 +149,17 @@ function EndScreenDialog({ record }: { record: SessionResponse }) {
             onPick={(nodeId, blockId) => patch({ nodeId, blockId })}
           />
         </Section>
+
+        {today && eventVisible ? (
+          <Section label={messages.planEventLabel}>
+            <EventLinkBody
+              eventId={edits.eventId}
+              nodeId={edits.nodeId}
+              today={today}
+              onChange={(eventId) => patch({ eventId })}
+            />
+          </Section>
+        ) : null}
 
         <Section label={messages.endMethod}>
           <EndScreenMethods

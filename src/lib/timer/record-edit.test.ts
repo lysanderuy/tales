@@ -7,6 +7,7 @@ const MANILA = "Asia/Manila";
 const record: EditableRecord = {
   nodeId: "n1",
   blockId: null,
+  eventId: null,
   methodTag: null,
   note: null,
   startedAt: "2026-03-10T05:00:00.000Z",
@@ -97,6 +98,16 @@ describe("buildRecordPatch", () => {
 
   it("sends nodeId only when the Subject changed", () => {
     expect(patchOf({ nodeId: "n2" })).toEqual({ ok: true, patch: { nodeId: "n2" } });
+  });
+
+  it("sends eventId only when it changed, including clearing it", () => {
+    const linked = { ...record, eventId: "e1" };
+    expect(patchOf({}, linked)).toEqual({ ok: true, patch: {} });
+    expect(patchOf({ eventId: "e2" }, linked)).toEqual({ ok: true, patch: { eventId: "e2" } });
+    expect(patchOf({ eventId: "e1" }, record)).toEqual({ ok: true, patch: { eventId: "e1" } });
+    expect(patchOf({ eventId: null }, linked)).toEqual({ ok: true, patch: { eventId: null } });
+    const result = patchOf({}, linked);
+    expect(result.ok && isEmptyPatch(result.patch)).toBe(true);
   });
 
   it("sends null when the note is cleared and ignores an unchanged blank note", () => {
