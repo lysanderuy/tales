@@ -17,13 +17,13 @@ export default function ErrorPage({
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-4 text-center">
       <h1 className="text-2xl font-semibold">Something went wrong</h1>
-      <p className="text-sm text-foreground/70">
+      <p className="text-sm text-text-soft">
         An unexpected error occurred. Try again, or come back later.
       </p>
-      {error.digest && <p className="text-xs text-foreground/50">Error ID: {error.digest}</p>}
+      {error.digest && <p className="text-xs text-text-faint">Error ID: {error.digest}</p>}
       <button
         onClick={reset}
-        className="mt-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90"
+        className="mt-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary hover:opacity-90"
       >
         Try again
       </button>
