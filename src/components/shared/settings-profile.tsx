@@ -4,10 +4,10 @@ import { SettingsPicture } from "@/components/shared/settings-picture";
 import { SettingsSection } from "@/components/shared/settings-parts";
 import { ReadOnlyField, SaveField } from "@/components/shared/settings-save-field";
 import { useSaveProfile } from "@/hooks/use-save-profile";
-import type { Profile } from "@/db/schema";
+import type { ProfileResponse } from "@/validators/profile.validator";
 import { messages } from "@/lib/messages";
 
-export function SettingsProfile({ profile }: { profile: Profile }) {
+export function SettingsProfile({ profile }: { profile: ProfileResponse }) {
   const save = useSaveProfile();
 
   return (

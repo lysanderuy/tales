@@ -2,10 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { Profile } from "@/db/schema";
 import { api } from "@/lib/api/client";
 import { useToastStore } from "@/stores/toast.store";
-import type { UpdateProfileInput } from "@/validators/profile.validator";
+import type { ProfileResponse, UpdateProfileInput } from "@/validators/profile.validator";
 
 export const profileKeys = {
   me: ["profile", "me"] as const,
@@ -14,7 +13,7 @@ export const profileKeys = {
 export function useProfile() {
   return useQuery({
     queryKey: profileKeys.me,
-    queryFn: () => api.get<Profile>("/api/profile"),
+    queryFn: () => api.get<ProfileResponse>("/api/profile"),
   });
 }
 
@@ -23,12 +22,15 @@ export function useUpdateProfile({ toastOnError = false }: { toastOnError?: bool
   const showError = useToastStore((state) => state.showError);
 
   return useMutation({
-    mutationFn: (input: UpdateProfileInput) => api.patch<Profile>("/api/profile", input),
+    mutationFn: (input: UpdateProfileInput) => api.patch<ProfileResponse>("/api/profile", input),
     onMutate: async (input) => {
-      const previous = queryClient.getQueryData<Profile>(profileKeys.me);
+      const previous = queryClient.getQueryData<ProfileResponse>(profileKeys.me);
       if (input.theme && previous) {
         await queryClient.cancelQueries({ queryKey: profileKeys.me });
-        queryClient.setQueryData<Profile>(profileKeys.me, { ...previous, theme: input.theme });
+        queryClient.setQueryData<ProfileResponse>(profileKeys.me, {
+          ...previous,
+          theme: input.theme,
+        });
       }
       return { previous };
     },

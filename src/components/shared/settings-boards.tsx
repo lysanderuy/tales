@@ -4,11 +4,11 @@ import { DateField } from "@/components/shared/date-field";
 import { SettingsSection } from "@/components/shared/settings-parts";
 import { useSaveProfile } from "@/hooks/use-save-profile";
 import { useToday } from "@/hooks/use-today";
-import type { Profile } from "@/db/schema";
+import type { ProfileResponse } from "@/validators/profile.validator";
 import { messages } from "@/lib/messages";
 import { localDateKey } from "@/lib/time/zone";
 
-export function SettingsBoards({ profile }: { profile: Profile }) {
+export function SettingsBoards({ profile }: { profile: ProfileResponse }) {
   const save = useSaveProfile();
   const todayQuery = useToday();
   const today = todayQuery.data?.todayDate ?? localDateKey(new Date(), profile.timeZone);

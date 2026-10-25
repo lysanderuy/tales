@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import type { Profile } from "@/db/schema";
+import type { ProfileResponse } from "@/validators/profile.validator";
 import { profileKeys } from "@/hooks/use-profile";
 import { api } from "@/lib/api/client";
 import { useToastStore } from "@/stores/toast.store";
@@ -12,7 +12,7 @@ export function useRemoveAvatar({ toastOnError = true }: { toastOnError?: boolea
   const showError = useToastStore((state) => state.showError);
 
   return useMutation({
-    mutationFn: () => api.delete<Profile>("/api/profile/avatar"),
+    mutationFn: () => api.delete<ProfileResponse>("/api/profile/avatar"),
     onError: toastOnError ? showError : undefined,
     onSettled: () => queryClient.invalidateQueries({ queryKey: profileKeys.me }),
   });
