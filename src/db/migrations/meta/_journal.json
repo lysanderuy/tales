@@ -176,6 +176,13 @@
       "when": 1792903712637,
       "tag": "0024_avatars-bucket-limits",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792925420219,
+      "tag": "0025_motionless_slipstream",
+      "breakpoints": true
     }
   ]
 }

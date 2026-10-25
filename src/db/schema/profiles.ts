@@ -18,7 +18,7 @@ export const profiles = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [check("profiles_theme_check", sql`${table.theme} in ('light', 'dark')`)],
-);
+).enableRLS();
 
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
