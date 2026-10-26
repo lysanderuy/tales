@@ -37,7 +37,17 @@ describe("updateSessionSchema", () => {
     expect(updateSessionSchema.safeParse({}).success).toBe(false);
   });
   it("allows clearing method and note", () => {
-    expect(updateSessionSchema.safeParse({ methodTag: null, note: null }).success).toBe(true);
+    expect(updateSessionSchema.safeParse({ methodTags: [], note: null }).success).toBe(true);
+  });
+  it("dedupes methods and orders them canonically", () => {
+    expect(
+      updateSessionSchema.parse({ methodTags: ["questions", "flashcards", "questions"] })
+        .methodTags,
+    ).toEqual(["flashcards", "questions"]);
+  });
+  it("rejects unknown or null methods", () => {
+    expect(updateSessionSchema.safeParse({ methodTags: ["nope"] }).success).toBe(false);
+    expect(updateSessionSchema.safeParse({ methodTags: null }).success).toBe(false);
   });
   it("allows picking or clearing a planned item", () => {
     expect(updateSessionSchema.safeParse({ blockId: id }).success).toBe(true);

@@ -8,7 +8,7 @@ const record: EditableRecord = {
   nodeId: "n1",
   blockId: null,
   eventId: null,
-  methodTag: null,
+  methodTags: [],
   note: null,
   startedAt: "2026-03-10T05:00:00.000Z",
   endedAt: "2026-03-10T05:40:00.000Z",
@@ -116,12 +116,20 @@ describe("buildRecordPatch", () => {
     expect(patchOf({ note: "" })).toEqual({ ok: true, patch: {} });
   });
 
-  it("sends a changed method, including clearing it", () => {
-    expect(patchOf({ methodTag: "flashcards" })).toEqual({
+  it("sends changed methods, including clearing them", () => {
+    expect(patchOf({ methodTags: ["flashcards"] })).toEqual({
       ok: true,
-      patch: { methodTag: "flashcards" },
+      patch: { methodTags: ["flashcards"] },
     });
-    const tagged = { ...record, methodTag: "questions" as const };
-    expect(patchOf({ methodTag: null }, tagged)).toEqual({ ok: true, patch: { methodTag: null } });
+    const tagged = { ...record, methodTags: ["questions" as const] };
+    expect(patchOf({ methodTags: [] }, tagged)).toEqual({ ok: true, patch: { methodTags: [] } });
+  });
+
+  it("does not send methods that only changed order", () => {
+    const tagged = { ...record, methodTags: ["flashcards" as const, "questions" as const] };
+    expect(patchOf({ methodTags: ["questions", "flashcards"] }, tagged)).toEqual({
+      ok: true,
+      patch: {},
+    });
   });
 });

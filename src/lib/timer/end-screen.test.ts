@@ -2,25 +2,25 @@ import { describe, expect, it } from "vitest";
 
 import { buildEndScreenUpdate, editsFromRecord } from "./end-screen";
 
-const record = {
+const record: Parameters<typeof editsFromRecord>[0] = {
   nodeId: "n1",
   blockId: null,
   eventId: null,
-  methodTag: null,
+  methodTags: [],
   note: null,
-} as const;
+};
 
 describe("buildEndScreenUpdate", () => {
   it("sends only method and note when the Subject is unchanged", () => {
-    const edits = { ...editsFromRecord(record), methodTag: "flashcards" as const, note: "x" };
-    expect(buildEndScreenUpdate(record, edits)).toEqual({ methodTag: "flashcards", note: "x" });
+    const edits = { ...editsFromRecord(record), methodTags: ["flashcards" as const], note: "x" };
+    expect(buildEndScreenUpdate(record, edits)).toEqual({ methodTags: ["flashcards"], note: "x" });
   });
 
   it("sends nodeId for a newly picked Subject", () => {
     const edits = { ...editsFromRecord(record), nodeId: "n2" };
     expect(buildEndScreenUpdate(record, edits)).toEqual({
       nodeId: "n2",
-      methodTag: null,
+      methodTags: [],
       note: null,
     });
   });
