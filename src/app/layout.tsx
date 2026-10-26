@@ -17,12 +17,10 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Tales", statusBarStyle: "default" },
 };
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#EAF1E6" },
-    { media: "(prefers-color-scheme: dark)", color: "#0F1A14" },
-  ],
-};
+export async function generateViewport(): Promise<Viewport> {
+  const stored = (await cookies()).get("tales-theme")?.value;
+  return { themeColor: stored === "dark" ? "#0F1A14" : "#EAF1E6" };
+}
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const stored = (await cookies()).get("tales-theme")?.value;
