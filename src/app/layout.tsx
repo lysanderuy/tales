@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
@@ -14,6 +14,14 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Tales",
   description: "A quiet study timer that keeps track of the time you put into each subject.",
+  appleWebApp: { capable: true, title: "Tales", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#EAF1E6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0F1A14" },
+  ],
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
