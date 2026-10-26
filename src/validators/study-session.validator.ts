@@ -26,9 +26,25 @@ const plannedMinutesSchema = z
   .max(MAX_PLANNED_MINUTES)
   .meta({ description: "Countdown length in minutes, 1 to 600.", example: 45 });
 
+const METHOD_TAGS = ["lecture_notes", "personal_notes", "flashcards", "questions"] as const;
+
 const methodTagSchema = z
-  .enum(["lecture_notes", "personal_notes", "flashcards", "questions"])
+  .enum(METHOD_TAGS)
   .meta({ description: "How the time was spent.", example: "flashcards" });
+
+const methodTagsInputSchema = z
+  .array(methodTagSchema)
+  .max(METHOD_TAGS.length)
+  .transform((tags) => METHOD_TAGS.filter((tag) => tags.includes(tag)))
+  .meta({
+    description: "How the time was spent. Duplicates are dropped; an empty list means none.",
+    example: ["flashcards", "questions"],
+  });
+
+const methodTagsSchema = z.array(methodTagSchema).meta({
+  description: "How the time was spent. Empty when none.",
+  example: ["flashcards", "questions"],
+});
 
 const noteSchema = z
   .string()
@@ -69,7 +85,7 @@ export const updateSessionSchema = z
       description:
         "Pick a planned item: sets the Subject or Topic to its own and attaches the record. Null detaches it.",
     }),
-    methodTag: methodTagSchema.nullable().optional(),
+    methodTags: methodTagsInputSchema.optional(),
     note: noteSchema.nullable().optional(),
     eventId: idSchema
       .nullable()
@@ -111,7 +127,7 @@ export const manualSessionSchema = z
     }),
     startedAt: instantSchema,
     endedAt: instantSchema,
-    methodTag: methodTagSchema.nullable().optional(),
+    methodTags: methodTagsInputSchema.optional(),
     note: noteSchema.nullable().optional(),
     eventId: idSchema
       .nullable()
@@ -161,7 +177,7 @@ export const sessionResponseSchema = z
       .int()
       .nullable()
       .meta({ description: "Countdown length including added time. Null for a count-up." }),
-    methodTag: methodTagSchema.nullable(),
+    methodTags: methodTagsSchema,
     note: z.string().nullable(),
     blockId: idSchema.nullable().meta({ description: "Planned item ID, null if none." }),
     eventId: idSchema.nullable().meta({ description: "Event ID, null if none." }),

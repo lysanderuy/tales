@@ -2,6 +2,7 @@ import { formatClock, localDateKey, zonedInstant } from "@/lib/time/zone";
 import {
   editsFromRecord,
   normalizeNote,
+  sameMethodTags,
   subjectUpdate,
   type EndMethodTag,
   type EndScreenEdits,
@@ -15,14 +16,14 @@ export interface RecordEdits extends EndScreenEdits {
 
 export type EditableRecord = Pick<
   SessionResponse,
-  "nodeId" | "blockId" | "eventId" | "methodTag" | "note" | "startedAt" | "endedAt"
+  "nodeId" | "blockId" | "eventId" | "methodTags" | "note" | "startedAt" | "endedAt"
 >;
 
 export interface RecordPatch {
   nodeId?: string;
   blockId?: string;
   eventId?: string | null;
-  methodTag?: EndMethodTag | null;
+  methodTags?: EndMethodTag[];
   note?: string | null;
   startedAt?: string;
   endedAt?: string;
@@ -54,7 +55,7 @@ export function buildRecordPatch(
 ): RecordPatchResult {
   const patch: RecordPatch = { ...subjectUpdate(record, edits) };
   if (edits.eventId !== record.eventId) patch.eventId = edits.eventId;
-  if (edits.methodTag !== record.methodTag) patch.methodTag = edits.methodTag;
+  if (!sameMethodTags(edits.methodTags, record.methodTags)) patch.methodTags = edits.methodTags;
   const note = normalizeNote(edits.note);
   if (note !== normalizeNote(record.note ?? "")) patch.note = note;
 

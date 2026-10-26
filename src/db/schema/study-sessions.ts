@@ -39,6 +39,10 @@ export const studySessions = pgTable(
     endedAt: timestamp("ended_at", { withTimezone: true }),
     plannedMinutes: integer("planned_minutes"),
     methodTag: methodTagEnum("method_tag"),
+    methodTags: methodTagEnum("method_tags")
+      .array()
+      .notNull()
+      .default(sql`'{}'::method_tag[]`),
     note: text("note"),
     startedFrom: startedFromEnum("started_from").notNull().default("free"),
     lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }).defaultNow().notNull(),

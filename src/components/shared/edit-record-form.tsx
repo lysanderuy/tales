@@ -176,7 +176,10 @@ export function EditRecordForm({
       ) : null}
 
       <Section label={messages.endMethod}>
-        <EndScreenMethods value={edits.methodTag} onChange={(methodTag) => patch({ methodTag })} />
+        <EndScreenMethods
+          value={edits.methodTags}
+          onChange={(methodTags) => patch({ methodTags })}
+        />
       </Section>
 
       <Section label={messages.endNote}>

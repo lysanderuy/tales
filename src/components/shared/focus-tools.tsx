@@ -13,7 +13,7 @@ import { messages } from "@/lib/messages";
 import type { ClockDisplay } from "@/lib/timer/clock";
 import type { SessionResponse } from "@/validators/study-session.validator";
 
-type MethodTag = NonNullable<SessionResponse["methodTag"]>;
+type MethodTag = SessionResponse["methodTags"][number];
 
 export const METHODS: readonly { tag: MethodTag; label: string }[] = [
   { tag: "lecture_notes", label: messages.methodLectureNotes },
@@ -83,26 +83,27 @@ export function FocusTools({ session, display, hasNote, noteOpen, onToggleNote }
       ) : null}
       <ToolMenu
         label={messages.focusMethod}
-        variant={session.methodTag ? "tint" : "fill"}
+        variant={session.methodTags.length ? "tint" : "fill"}
         icon={<MethodIcon />}
       >
-        {(close) =>
+        {() =>
           METHODS.map(({ tag, label }) => (
             <button
               key={tag}
               type="button"
               disabled={update.isPending}
               onClick={() => {
-                close();
                 update.mutate({
                   id: session.id,
-                  methodTag: session.methodTag === tag ? null : tag,
+                  methodTags: session.methodTags.includes(tag)
+                    ? session.methodTags.filter((t) => t !== tag)
+                    : [...session.methodTags, tag],
                 });
               }}
               className="flex w-full items-center justify-between rounded-row p-2.5 text-left text-ui hover:bg-fill"
             >
               {label}
-              {session.methodTag === tag ? <CheckIcon /> : null}
+              {session.methodTags.includes(tag) ? <CheckIcon /> : null}
             </button>
           ))
         }

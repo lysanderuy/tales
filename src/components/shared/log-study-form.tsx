@@ -41,7 +41,7 @@ export function LogStudyForm({
   const [date, setDate] = useState(() => clampDate(defaultDate, undefined, today));
   const [start, setStart] = useState({ value: "", valid: true });
   const [end, setEnd] = useState({ value: "", valid: true });
-  const [methodTag, setMethodTag] = useState<EndMethodTag | null>(null);
+  const [methodTags, setMethodTags] = useState<EndMethodTag[]>([]);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -68,7 +68,7 @@ export function LogStudyForm({
         nodeId,
         startedAt: zonedInstant(date, start.value, timeZone).toISOString(),
         endedAt: zonedInstant(date, end.value, timeZone).toISOString(),
-        methodTag,
+        methodTags,
         note: normalizeNote(note),
         ...(eventId ? { eventId } : {}),
       });
@@ -137,7 +137,7 @@ export function LogStudyForm({
       />
 
       <Section label={messages.endMethod}>
-        <EndScreenMethods value={methodTag} onChange={setMethodTag} />
+        <EndScreenMethods value={methodTags} onChange={setMethodTags} />
       </Section>
 
       <Section label={messages.endNote}>

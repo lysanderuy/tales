@@ -164,8 +164,8 @@ function EndScreenDialog({ record }: { record: SessionResponse }) {
 
         <Section label={messages.endMethod}>
           <EndScreenMethods
-            value={edits.methodTag}
-            onChange={(methodTag) => patch({ methodTag })}
+            value={edits.methodTags}
+            onChange={(methodTags) => patch({ methodTags })}
             className="justify-center"
           />
         </Section>
