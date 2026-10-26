@@ -1,0 +1,1 @@
+ALTER TABLE "study_sessions" ADD COLUMN "method_tags" "method_tag"[] DEFAULT '{}'::method_tag[] NOT NULL;
