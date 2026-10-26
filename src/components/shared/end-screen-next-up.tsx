@@ -20,7 +20,7 @@ export function EndScreenNextUp({
   disabled,
   onStart,
 }: EndScreenNextUpProps) {
-  const nextUp = useNextUp(excludeBlockId).data;
+  const { data: nextUp, isPlaceholderData } = useNextUp(excludeBlockId);
   if (!nextUp || nextUp.blockId === excludeBlockId) return null;
 
   const name = index.get(nextUp.nodeId)?.name ?? messages.todayUnknownSubject;
@@ -40,7 +40,7 @@ export function EndScreenNextUp({
         size="xs"
         variant="tint"
         label={messages.endStartNext}
-        disabled={disabled}
+        disabled={disabled || isPlaceholderData}
         onClick={() => onStart(nextUp.blockId)}
       >
         <PlayIcon size={16} />
