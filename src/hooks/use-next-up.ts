@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { todayKeys } from "@/hooks/use-today";
 import { api } from "@/lib/api/client";
@@ -19,5 +19,6 @@ export function useNextUp(excludeBlockId: string | null) {
           : "/api/today/next-up",
       ),
     staleTime: 0,
+    placeholderData: keepPreviousData,
   });
 }

@@ -21,7 +21,7 @@ export function EndScreenNextUp({
   onStart,
 }: EndScreenNextUpProps) {
   const nextUp = useNextUp(excludeBlockId).data;
-  if (!nextUp) return null;
+  if (!nextUp || nextUp.blockId === excludeBlockId) return null;
 
   const name = index.get(nextUp.nodeId)?.name ?? messages.todayUnknownSubject;
   const text = nextUp.minutesLeft === null ? name : `${name} · ${nextUp.minutesLeft} min`;
