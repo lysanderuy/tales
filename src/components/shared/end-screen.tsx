@@ -121,7 +121,7 @@ function EndScreenDialog({ record }: { record: SessionResponse }) {
       role="dialog"
       aria-modal="true"
       aria-label={messages.endTitle}
-      className="fixed inset-0 z-[var(--z-focus)] flex flex-col items-center overflow-auto bg-bg px-6 py-8 text-center"
+      className="fixed inset-0 z-[var(--z-focus)] flex flex-col items-center overflow-auto bg-bg px-6 py-12 text-center"
     >
       <div className="m-auto w-full max-w-[var(--endscreen-w)]">
         <h1 className="text-h1 font-semibold tracking-[-0.02em]">{messages.endTitle}</h1>

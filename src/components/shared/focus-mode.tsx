@@ -121,7 +121,7 @@ function FocusDialog({ session, display }: FocusDialogProps) {
       aria-modal="true"
       aria-label={messages.focusLabel}
       onClickCapture={unlockAudio}
-      className="fixed inset-0 z-[var(--z-focus)] flex flex-col items-center overflow-hidden bg-bg px-6 py-14 text-center"
+      className="fixed inset-0 z-[var(--z-focus)] flex flex-col items-center overflow-auto bg-bg px-6 py-14 text-center"
     >
       <div className="absolute left-6 top-6">
         <IconButton size="sm" label={messages.focusMinimize} onClick={() => setFocusOpen(false)}>
@@ -193,7 +193,7 @@ function FocusDialog({ session, display }: FocusDialogProps) {
           onToggleNote={toggleNote}
         />
         {noteOpen ? (
-          <div className="absolute left-1/2 top-full w-[min(440px,92vw)] -translate-x-1/2 pt-5">
+          <div className="mx-auto w-[min(440px,92vw)] pt-5">
             <textarea
               ref={noteRef}
               value={note.text}
