@@ -21,6 +21,7 @@ import { useStartBlock } from "@/hooks/use-start-block";
 import { useStartSession } from "@/hooks/use-start-session";
 import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
+import { formatClockRange, formatTimeOfDay } from "@/lib/plan/time";
 import { unlockAudio } from "@/lib/sound/chime";
 import {
   formatProgress,
@@ -76,7 +77,7 @@ function toRowView(row: TodayRow, index: SubjectIndex): RowView {
         .filter((record) => !record.live)
         .map((record) => ({
           recordId: record.recordId,
-          label: `${record.startClock}–${record.endClock ?? messages.todayRunningEnd} · ${formatSeconds(record.seconds)}`,
+          label: `${formatClockRange(record.startClock, record.endClock, messages.todayRunningEnd)} · ${formatSeconds(record.seconds)}`,
         })),
       start: { blockId: row.blockId },
     };
@@ -90,7 +91,7 @@ function toRowView(row: TodayRow, index: SubjectIndex): RowView {
     times: "",
     progress: row.live
       ? duration
-      : `${duration} · ${row.startClock}–${row.endClock ?? messages.todayRunningEnd}`,
+      : `${duration} · ${formatClockRange(row.startClock, row.endClock, messages.todayRunningEnd)}`,
     bar: null,
     live: row.live,
     records: row.live ? [] : [{ recordId: row.recordId, label: duration }],
@@ -238,8 +239,8 @@ export function TodaysStudyCard({
                     records={view.records}
                     onOpen={(id, opener) => setEditing({ id, opener })}
                   >
-                    <span className="num w-11 shrink-0 text-small text-text-faint">
-                      {view.timeOfDay}
+                    <span className="num w-16 shrink-0 text-small text-text-faint">
+                      {view.timeOfDay ? formatTimeOfDay(view.timeOfDay) : ""}
                     </span>
                     <Swatch color={color} />
                     <span className="block min-w-0 flex-1">

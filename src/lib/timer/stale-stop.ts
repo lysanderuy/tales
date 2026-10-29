@@ -1,3 +1,4 @@
+import { formatTimeOfDay } from "@/lib/plan/time";
 import { formatClock, localDateKey, zonedInstant } from "@/lib/time/zone";
 import { formatDayLabel } from "@/lib/today/format";
 import { clampStopTime } from "@/lib/timer/timer";
@@ -27,6 +28,6 @@ export function staleDayLabel(instant: Date, now: Date, timeZone: string): strin
 
 export function staleClockLabel(instant: Date, now: Date, timeZone: string): string {
   const day = staleDayLabel(instant, now, timeZone);
-  const time = formatClock(instant, timeZone);
+  const time = formatTimeOfDay(formatClock(instant, timeZone));
   return day ? `${day} ${time}` : time;
 }

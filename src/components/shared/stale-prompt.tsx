@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { buttonClass } from "@/components/ui/button";
-import { TextField } from "@/components/ui/text-field";
+import { TimeField } from "@/components/shared/time-field";
 import { useCurrentSession, useStaleSession } from "@/hooks/use-current-session";
 import { useProfile } from "@/hooks/use-profile";
 import { useHeartbeatSession } from "@/hooks/use-heartbeat-session";
@@ -94,6 +94,10 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
 
   const onSave = () => {
     if (!timeZone) return;
+    if (time === "") {
+      setError(messages.timeInvalid);
+      return;
+    }
     const serverNow = data ? Date.now() + clockOffset(data.serverNow, dataUpdatedAt) : Date.now();
     const endedAt = staleStopInstant(
       time,
@@ -165,17 +169,15 @@ function StalePromptDialog({ session }: { session: SessionResponse }) {
         ) : (
           <>
             <div className="mt-6">
-              <TextField
-                ref={timeRef}
+              <TimeField
+                inputRef={timeRef}
                 label={messages.staleStopAt}
-                type="time"
-                value={time}
+                defaultValue={time}
                 disabled={busy}
-                onChange={(event) => {
-                  setEditedTime(event.target.value);
+                onChange={(value) => {
+                  setEditedTime(value);
                   setError(null);
                 }}
-                className="num"
               />
               {heartbeatDay ? (
                 <p className="num mt-2 text-small text-text-soft">{heartbeatDay}</p>

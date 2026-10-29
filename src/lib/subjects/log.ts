@@ -1,3 +1,4 @@
+import { formatClockRange } from "@/lib/plan/time";
 import { addDays, formatClock, localDateKey } from "@/lib/time/zone";
 import { formatEventDate } from "@/lib/today/format";
 
@@ -17,6 +18,6 @@ export function formatLogWhen(
       : dayKey === addDays(todayKey, -1)
         ? labels.yesterday
         : formatEventDate(dayKey);
-  const end = endedAt ? formatClock(new Date(endedAt), timeZone) : "";
-  return `${formatClock(start, timeZone)}–${end} · ${day}`;
+  const end = endedAt ? formatClock(new Date(endedAt), timeZone) : null;
+  return `${formatClockRange(formatClock(start, timeZone), end, "")} · ${day}`;
 }

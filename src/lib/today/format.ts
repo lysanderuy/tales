@@ -1,3 +1,5 @@
+import { formatClockRange, formatTimeOfDay } from "@/lib/plan/time";
+
 export function secondsToMinutes(seconds: number): number {
   return Math.round(seconds / 60);
 }
@@ -80,7 +82,7 @@ export function formatEventSub(event: {
   daysAway: number;
 }): string {
   const when = event.time
-    ? `${formatEventDate(event.date)}, ${event.time}`
+    ? `${formatEventDate(event.date)}, ${formatTimeOfDay(event.time)}`
     : formatEventDate(event.date);
   return `${when} · ${formatDaysAway(event.daysAway)}`;
 }
@@ -89,5 +91,5 @@ export function formatTimeRanges(
   times: ReadonlyArray<{ startClock: string; endClock: string | null }>,
   runningLabel: string,
 ): string {
-  return times.map((t) => `${t.startClock}–${t.endClock ?? runningLabel}`).join(", ");
+  return times.map((t) => formatClockRange(t.startClock, t.endClock, runningLabel)).join(", ");
 }

@@ -1,3 +1,4 @@
+import { formatClockRange } from "@/lib/plan/time";
 import { formatClock, localDateKey } from "@/lib/time/zone";
 import { formatEventDate } from "@/lib/today/format";
 import type { SubjectIndex } from "@/lib/today/subject-index";
@@ -23,5 +24,5 @@ export function formatSessionWhen(session: EventSession, timeZone: string): stri
   const start = new Date(session.startedAt);
   const end = new Date(session.endedAt);
   const day = formatEventDate(localDateKey(start, timeZone));
-  return `${formatClock(start, timeZone)}–${formatClock(end, timeZone)} · ${day}`;
+  return `${formatClockRange(formatClock(start, timeZone), formatClock(end, timeZone))} · ${day}`;
 }

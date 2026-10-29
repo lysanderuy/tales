@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
 import { EDGE, placeFloating } from "@/lib/picker/position";
 import { progressFill } from "@/lib/plan/summary";
+import { formatClockRange, formatTimeOfDay } from "@/lib/plan/time";
 import { formatClock } from "@/lib/time/zone";
 import { formatProgress, formatSeconds } from "@/lib/today/format";
 import {
@@ -67,11 +68,13 @@ export function recordChoicesByBlock(
   const sorted = [...records].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   for (const record of sorted) {
     if (record.blockId === null || record.endedAt === null) continue;
-    const start = formatClock(new Date(record.startedAt), timeZone);
-    const end = formatClock(new Date(record.endedAt), timeZone);
+    const range = formatClockRange(
+      formatClock(new Date(record.startedAt), timeZone),
+      formatClock(new Date(record.endedAt), timeZone),
+    );
     byBlock.set(record.blockId, [
       ...(byBlock.get(record.blockId) ?? []),
-      { recordId: record.id, label: `${start}–${end} · ${formatSeconds(record.activeSeconds)}` },
+      { recordId: record.id, label: `${range} · ${formatSeconds(record.activeSeconds)}` },
     ]);
   }
   return byBlock;
@@ -209,11 +212,12 @@ export function PlanRow({
 }: PlanRowProps) {
   const { info, archived } = lookupSubject(lookup, block.nodeId);
   const path = formatPath(info.ancestors);
+  const shownClock = block.timeOfDay ?? startClock;
 
   const summary = (
     <>
-      <span className="num w-11 shrink-0 text-small text-text-faint">
-        {block.timeOfDay ?? startClock ?? ""}
+      <span className="num w-16 shrink-0 text-small text-text-faint">
+        {shownClock ? formatTimeOfDay(shownClock) : ""}
       </span>
       <Swatch color={info.color} className={cn(archived && "opacity-60 grayscale")} />
       <span className="block min-w-0 flex-1">
@@ -309,18 +313,19 @@ export function PlanGhostRow({ record, lookup, timeZone, onOpenRecord }: PlanGho
   if (!record.nodeId) return null;
   const { info, archived } = lookupSubject(lookup, record.nodeId);
   const path = formatPath(info.ancestors);
-  const start = formatClock(new Date(record.startedAt), timeZone);
-  const end = record.endedAt ? formatClock(new Date(record.endedAt), timeZone) : "";
+  const startClock = formatClock(new Date(record.startedAt), timeZone);
+  const endClock = record.endedAt ? formatClock(new Date(record.endedAt), timeZone) : null;
+  const start = formatTimeOfDay(startClock);
 
   return (
     <li className="py-1.5 first:pt-0">
       <button
         type="button"
-        title={`${info.name} · ${start}–${end}`}
+        title={`${info.name} · ${formatClockRange(startClock, endClock, "")}`}
         onClick={(event) => onOpenRecord(record.id, event.currentTarget)}
         className="-mx-2 flex w-[calc(100%+16px)] items-center gap-3.5 rounded-row border-[1.5px] border-dashed border-[color-mix(in_srgb,var(--text-faint)_55%,transparent)] px-2 py-2.5 text-left hover:bg-fill"
       >
-        <span className="num w-11 shrink-0 text-small text-text-faint">{start}</span>
+        <span className="num w-16 shrink-0 text-small text-text-faint">{start}</span>
         <Swatch color={info.color} className={cn(archived && "opacity-60 grayscale")} />
         <span className="block min-w-0 flex-1">
           <span className="flex items-center gap-2 font-semibold">
@@ -366,7 +371,9 @@ export function PlanEventRow({ event, lookup, spacer }: PlanEventRowProps) {
   return (
     <li className="py-1.5 first:pt-0">
       <div className="-mx-2 flex items-center gap-3.5 rounded-row bg-fill px-2 py-2.5">
-        <span className="num w-11 shrink-0 text-small text-text-faint">{event.time ?? ""}</span>
+        <span className="num min-w-16 shrink-0 text-small text-text-faint">
+          {event.time ? formatTimeOfDay(event.time) : ""}
+        </span>
         <span
           aria-hidden="true"
           className="mx-[3.5px] w-[3px] shrink-0 self-stretch rounded-full bg-text-faint"
