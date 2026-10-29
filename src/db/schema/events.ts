@@ -37,6 +37,7 @@ export const events = pgTable(
     type: eventType("type"),
     date: date("date", { mode: "string" }).notNull(),
     time: time("time"),
+    endTime: time("end_time"),
     note: text("note"),
     closedAt: timestamp("closed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -46,6 +47,7 @@ export const events = pgTable(
     unique("events_user_id_id_unique").on(t.userId, t.id),
     index("events_user_date_idx").on(t.userId, t.date),
     check("events_title_check", sql`char_length(${t.title}) between 1 and 100`),
+    check("events_end_time_check", sql`${t.endTime} is null or ${t.time} is not null`),
     check("events_note_check", sql`${t.note} is null or char_length(${t.note}) <= 5000`),
   ],
 ).enableRLS();
