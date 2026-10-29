@@ -57,7 +57,8 @@ export function groupIntoBands<T>(
 }
 
 export function startsOffPlan(plannedClock: string, actualClock: string): boolean {
-  return Math.abs(clockMinutes(actualClock) - clockMinutes(plannedClock)) >= OFF_PLAN_MINUTES;
+  const gap = Math.abs(clockMinutes(actualClock) - clockMinutes(plannedClock));
+  return Math.min(gap, 24 * 60 - gap) >= OFF_PLAN_MINUTES;
 }
 
 export function firstStartClock(
