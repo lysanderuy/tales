@@ -56,14 +56,31 @@ const stateSchema = z.enum(["upcoming", "ready_to_close", "closed"]).meta({
   description: "Upcoming until the date or time passes, then Ready to close until she closes it.",
 });
 
-export const createEventSchema = z.object({
-  title: titleSchema,
-  type: typeSchema.nullable().optional(),
-  date: dateKeySchema,
-  time: clockSchema.nullable().optional(),
-  coverIds: coverIdsSchema.optional(),
-  note: noteSchema.nullable().optional(),
+const endTimeSchema = clockSchema.meta({
+  description:
+    "Local end time, HH:mm. Needs a start time. Earlier than the start means the next day.",
+  example: "12:00",
 });
+
+function endTimeAllowed(value: { time?: string | null; endTime?: string | null }): boolean {
+  if (value.endTime == null) return true;
+  if (value.time === null) return false;
+  return value.time === undefined || value.endTime !== value.time;
+}
+
+export const createEventSchema = z
+  .object({
+    title: titleSchema,
+    type: typeSchema.nullable().optional(),
+    date: dateKeySchema,
+    time: clockSchema.nullable().optional(),
+    endTime: endTimeSchema.nullable().optional(),
+    coverIds: coverIdsSchema.optional(),
+    note: noteSchema.nullable().optional(),
+  })
+  .refine((value) => endTimeAllowed({ time: value.time ?? null, endTime: value.endTime }), {
+    message: messages.invalidRequest,
+  });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 
@@ -73,6 +90,7 @@ export const updateEventSchema = z
     type: typeSchema.nullable().optional(),
     date: dateKeySchema.optional(),
     time: clockSchema.nullable().optional(),
+    endTime: endTimeSchema.nullable().optional(),
     coverIds: coverIdsSchema.optional().meta({
       description: "Replaces the covers. Send an empty list to clear them.",
     }),
@@ -80,7 +98,8 @@ export const updateEventSchema = z
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), {
     message: messages.invalidRequest,
-  });
+  })
+  .refine(endTimeAllowed, { message: messages.invalidRequest });
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 
@@ -120,6 +139,7 @@ const eventBaseShape = {
   type: typeSchema.nullable(),
   date: dateKeySchema,
   time: clockSchema.nullable(),
+  endTime: endTimeSchema.nullable(),
   state: stateSchema,
   closedAt: z.string().datetime().nullable(),
   coverIds: z.array(nodeIdSchema).meta({ description: "Subjects or Topics the event covers." }),

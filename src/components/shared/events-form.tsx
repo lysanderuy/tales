@@ -19,6 +19,7 @@ export type EventFormInitial = {
   title: string;
   date: string;
   time: string;
+  endTime: string;
   covers: readonly (string | null)[];
   note: string;
   marks: Readonly<Record<string, EventMark>>;
@@ -28,6 +29,7 @@ export type EventFormValue = {
   title: string;
   date: string;
   time: string | null;
+  endTime: string | null;
   coverIds: string[];
   note: string;
   marks: Record<string, EventMark>;
@@ -66,6 +68,9 @@ export function EventsForm({
   const [date, setDate] = useState(initial.date);
   const [time, setTime] = useState(initial.time);
   const [timeValid, setTimeValid] = useState(true);
+  const [endTime, setEndTime] = useState(initial.endTime);
+  const [endValid, setEndValid] = useState(true);
+  const [endKey, setEndKey] = useState(0);
   const [note, setNote] = useState(initial.note);
   const [coverage, setCoverage] = useState<CoverageDraft>({
     covers: initial.covers,
@@ -96,7 +101,8 @@ export function EventsForm({
     area.style.height = `${Math.min(area.scrollHeight + 2, MAX_NOTE_HEIGHT)}px`;
   }, [note]);
 
-  const canSave = title.trim() !== "" && timeValid && !pending;
+  const endError = time !== "" && endTime === time ? messages.timeEndSameAsStart : undefined;
+  const canSave = title.trim() !== "" && timeValid && endValid && !endError && !pending;
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -105,6 +111,7 @@ export function EventsForm({
       title: title.trim(),
       date,
       time: time === "" ? null : time,
+      endTime: time === "" || endTime === "" ? null : endTime,
       coverIds: coverIdsOf(coverage.covers),
       note,
       marks: { ...coverage.marks },
@@ -133,14 +140,36 @@ export function EventsForm({
         />
       </div>
       <div className="mt-5">
-        <TimeField
-          label={messages.eventsTimeLabel}
-          defaultValue={initial.time}
-          onChange={(value, valid) => {
-            setTime(value);
-            setTimeValid(valid);
-          }}
-        />
+        <div className="flex gap-3">
+          <div className="min-w-0 flex-1">
+            <TimeField
+              label={messages.eventsTimeLabel}
+              defaultValue={initial.time}
+              onChange={(value, valid) => {
+                setTime(value);
+                setTimeValid(valid);
+                if (valid && value === "") {
+                  setEndTime("");
+                  setEndValid(true);
+                  setEndKey((key) => key + 1);
+                }
+              }}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <TimeField
+              key={endKey}
+              label={messages.eventsEndTimeLabel}
+              defaultValue={endKey === 0 ? initial.endTime : ""}
+              disabled={time === ""}
+              error={endError}
+              onChange={(value, valid) => {
+                setEndTime(value);
+                setEndValid(valid);
+              }}
+            />
+          </div>
+        </div>
       </div>
       {closed ? (
         <div className="mt-5">

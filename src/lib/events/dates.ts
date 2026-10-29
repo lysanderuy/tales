@@ -1,5 +1,6 @@
 import { messages } from "@/lib/messages";
 import { dayDiff, formatWeekdayShort } from "@/lib/plan/dates";
+import { formatClockRange } from "@/lib/plan/time";
 
 function monthDay(dateKey: string): string {
   const [year, month, day] = dateKey.split("-").map(Number);
@@ -23,16 +24,23 @@ export function formatShortDate(date: string, today: string): string {
   return sameYear ? monthDay(date) : `${monthDay(date)}, ${date.slice(0, 4)}`;
 }
 
-export function formatEventMeta(date: string, time: string | null, today: string): string {
-  return [formatShortDate(date, today), time].filter(Boolean).join(" · ");
+export function formatEventMeta(
+  date: string,
+  time: string | null,
+  today: string,
+  endTime: string | null = null,
+): string {
+  return [formatShortDate(date, today), time ? formatClockRange(time, endTime) : null]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export function formatEventLine(
-  event: { date: string; time: string | null; upcoming: boolean },
+  event: { date: string; time: string | null; endTime?: string | null; upcoming: boolean },
   today: string,
 ): string {
   const parts = [`${formatWeekdayShort(event.date)}, ${formatShortDate(event.date, today)}`];
-  if (event.time) parts.push(event.time);
+  if (event.time) parts.push(formatClockRange(event.time, event.endTime ?? null));
   const relative = event.upcoming ? relativeDay(event.date, today) : null;
   if (relative) parts.push(relative);
   return parts.join(" · ");

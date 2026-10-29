@@ -20,6 +20,7 @@ import { useEvents } from "@/hooks/use-events";
 import { cn } from "@/lib/cn";
 import { formatEventMeta } from "@/lib/events/dates";
 import { messages } from "@/lib/messages";
+import { endOfSpan, minutesBetween } from "@/lib/plan/time";
 import { formatPath } from "@/lib/today/subject-index";
 import type { BlockResponse } from "@/validators/block.validator";
 import type { EventSummaryResponse } from "@/validators/event.validator";
@@ -42,6 +43,16 @@ function parseCustom(raw: string): number | null | undefined {
 function initialChoice(minutes: number | null): MinuteChoice {
   if (minutes === null) return "open";
   return PRESETS.includes(minutes) ? minutes : "custom";
+}
+
+function choiceMinutes(choice: MinuteChoice, customText: string): number | null {
+  if (choice === "open") return null;
+  if (choice === "custom") return parseCustom(customText) ?? null;
+  return choice;
+}
+
+function endFor(start: string, minutes: number | null): string {
+  return start && minutes !== null ? endOfSpan(start, minutes).clock : "";
 }
 
 type SubjectFieldProps = {
@@ -102,6 +113,7 @@ const chipOff = "bg-fill hover:bg-fill-hover";
 type MinutesChipsProps = {
   choice: MinuteChoice;
   customText: string;
+  focusCustom: boolean;
   onChoice: (choice: MinuteChoice) => void;
   onCustomText: (text: string) => void;
   onCommitCustom: () => void;
@@ -110,6 +122,7 @@ type MinutesChipsProps = {
 function MinutesChips({
   choice,
   customText,
+  focusCustom,
   onChoice,
   onCustomText,
   onCommitCustom,
@@ -140,7 +153,7 @@ function MinutesChips({
           type="text"
           inputMode="numeric"
           maxLength={3}
-          autoFocus
+          autoFocus={focusCustom}
           value={customText}
           placeholder={messages.todayCustomMinutes}
           aria-label={messages.todayCustomMinutesLabel}
@@ -229,7 +242,7 @@ export function EventLinkBody({
             <span className="min-w-0 truncate">{linked?.title ?? messages.planEventFallback}</span>
             {linked ? (
               <span className="num shrink-0 text-small text-text-faint">
-                {formatEventMeta(linked.date, linked.time, today)}
+                {formatEventMeta(linked.date, linked.time, today, linked.endTime)}
               </span>
             ) : null}
           </>
@@ -293,6 +306,12 @@ export function PlanEditForm({
   const [eventId, setEventId] = useState<string | null>(block?.eventId ?? null);
   const [time, setTime] = useState(block?.timeOfDay ?? "");
   const [timeValid, setTimeValid] = useState(true);
+  const [endDefault, setEndDefault] = useState(() =>
+    endFor(block?.timeOfDay ?? "", block?.plannedMinutes ?? null),
+  );
+  const [endKey, setEndKey] = useState(0);
+  const [endError, setEndError] = useState<string | undefined>();
+  const [focusCustom, setFocusCustom] = useState(false);
   const [minutesError, setMinutesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -304,6 +323,46 @@ export function PlanEditForm({
   useEffect(() => {
     onOverlayChange(pickerOpen || dateOpen || confirmOpen || eventPickerOpen);
   }, [pickerOpen, dateOpen, confirmOpen, eventPickerOpen, onOverlayChange]);
+
+  const fillEnd = (start: string, minutes: number | null) => {
+    setEndDefault(endFor(start, minutes));
+    setEndError(undefined);
+    setEndKey((key) => key + 1);
+  };
+
+  const onChoice = (next: MinuteChoice) => {
+    setChoice(next);
+    setMinutesError(null);
+    setFocusCustom(next === "custom");
+    if (next !== "custom") fillEnd(time, choiceMinutes(next, customText));
+  };
+
+  const onCustomText = (text: string) => {
+    setCustomText(text);
+    setMinutesError(null);
+    const value = parseCustom(text);
+    fillEnd(time, typeof value === "number" ? value : null);
+  };
+
+  const onStartChange = (value: string, valid: boolean) => {
+    setTime(value);
+    setTimeValid(valid);
+    if (valid) fillEnd(value, choiceMinutes(choice, customText));
+  };
+
+  const onEndChange = (value: string, valid: boolean) => {
+    if (!valid || value === "" || time === "") return;
+    const minutes = minutesBetween(time, value);
+    if (minutes === 24 * 60 || minutes > MAX_MINUTES) {
+      setEndError(minutes === 24 * 60 ? messages.timeEndSameAsStart : messages.timeEndTooLong);
+      return;
+    }
+    setEndError(undefined);
+    setFocusCustom(false);
+    setChoice("custom");
+    setCustomText(String(minutes));
+    setMinutesError(null);
+  };
 
   const commitCustom = () => {
     const value = parseCustom(customText);
@@ -410,27 +469,28 @@ export function PlanEditForm({
           <TimeField
             label={messages.planTimeLabel}
             defaultValue={block?.timeOfDay ?? ""}
-            onChange={(value, valid) => {
-              setTime(value);
-              setTimeValid(valid);
-            }}
+            onChange={onStartChange}
           />
         </div>
-        <div aria-hidden="true" className="min-w-0 flex-1" />
+        <div className="min-w-0 flex-1">
+          <TimeField
+            key={endKey}
+            label={messages.planEndTimeLabel}
+            defaultValue={endDefault}
+            disabled={time === ""}
+            error={endError}
+            onChange={onEndChange}
+          />
+        </div>
       </div>
 
       <Section label={messages.planMinutesLabel}>
         <MinutesChips
           choice={choice}
           customText={customText}
-          onChoice={(next) => {
-            setChoice(next);
-            setMinutesError(null);
-          }}
-          onCustomText={(text) => {
-            setCustomText(text);
-            setMinutesError(null);
-          }}
+          focusCustom={focusCustom}
+          onChoice={onChoice}
+          onCustomText={onCustomText}
           onCommitCustom={commitCustom}
         />
         {minutesError ? (
@@ -471,7 +531,10 @@ export function PlanEditForm({
           <IconButton label={messages.editCancel} onClick={onClose}>
             <CloseIcon />
           </IconButton>
-          <Button disabled={busy || !nodeId || !timeValid} onClick={() => void onSave()}>
+          <Button
+            disabled={busy || !nodeId || !timeValid || !!endError}
+            onClick={() => void onSave()}
+          >
             {messages.editSave}
           </Button>
         </div>

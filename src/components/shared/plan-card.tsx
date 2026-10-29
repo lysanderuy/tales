@@ -18,6 +18,7 @@ import { cn } from "@/lib/cn";
 import { messages } from "@/lib/messages";
 import { startsOffPlan } from "@/lib/plan/bands";
 import { progressFill } from "@/lib/plan/summary";
+import { formatClockRange, formatTimeOfDay } from "@/lib/plan/time";
 import { formatClock } from "@/lib/time/zone";
 import { formatSeconds } from "@/lib/today/format";
 import type { BlockResponse } from "@/validators/block.validator";
@@ -61,7 +62,7 @@ export function PlanCard({
   const actualStart = first ? formatClock(new Date(first.startedAt), timeZone) : null;
   const actualSpan =
     withRecords && actualStart && (!block.timeOfDay || startsOffPlan(block.timeOfDay, actualStart))
-      ? messages.planStartedAt(actualStart)
+      ? messages.planStartedAt(formatTimeOfDay(actualStart))
       : null;
 
   const main = (
@@ -77,7 +78,7 @@ export function PlanCard({
           color={info.color}
           className={cn("size-[9px]", archived && "opacity-60 grayscale")}
         />
-        {block.timeOfDay}
+        {block.timeOfDay ? formatTimeOfDay(block.timeOfDay) : null}
       </span>
       {actualSpan ? (
         <span className="num mt-1 block text-caption text-text-faint">{actualSpan}</span>
@@ -159,13 +160,14 @@ type PlanGhostCardProps = {
 export function PlanGhostCard({ record, lookup, timeZone, onOpenRecord }: PlanGhostCardProps) {
   if (!record.nodeId) return null;
   const { info } = lookupSubject(lookup, record.nodeId);
-  const start = formatClock(new Date(record.startedAt), timeZone);
-  const end = record.endedAt ? formatClock(new Date(record.endedAt), timeZone) : "";
+  const startClock = formatClock(new Date(record.startedAt), timeZone);
+  const endClock = record.endedAt ? formatClock(new Date(record.endedAt), timeZone) : null;
+  const start = formatTimeOfDay(startClock);
 
   return (
     <button
       type="button"
-      title={`${info.name} · ${start}–${end}`}
+      title={`${info.name} · ${formatClockRange(startClock, endClock, "")}`}
       onClick={(event) => onOpenRecord(record.id, event.currentTarget)}
       className="mb-2 block w-full rounded-row border-[1.5px] border-dashed border-[color-mix(in_srgb,var(--text-faint)_55%,transparent)] p-2.5 text-left hover:bg-fill"
     >
@@ -212,7 +214,6 @@ export function PlanEventCard({ event, lookup }: PlanEventCardProps) {
         </span>
         {event.time || dots.length > 0 ? (
           <span className="num mt-1 flex items-center gap-[7px] text-caption text-text-faint">
-            {event.time}
             {dots.map(({ info, archived }, position) => (
               <Swatch
                 key={position}
@@ -220,6 +221,7 @@ export function PlanEventCard({ event, lookup }: PlanEventCardProps) {
                 className={cn("size-[9px]", archived && "opacity-60 grayscale")}
               />
             ))}
+            {event.time ? formatClockRange(event.time, event.endTime) : null}
           </span>
         ) : null}
         {event.state === "closed" ? (

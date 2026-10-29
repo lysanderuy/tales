@@ -66,6 +66,7 @@ export function EventsDetail({
         title: value.title,
         date: value.date,
         time: value.time,
+        endTime: value.endTime,
         coverIds: value.coverIds,
       });
       if (isClosed) {
@@ -110,6 +111,7 @@ export function EventsDetail({
             title: event.title,
             date: event.date,
             time: event.time ?? "",
+            endTime: event.endTime ?? "",
             covers: event.coverIds,
             note: detail.note ?? "",
             marks,
@@ -140,7 +142,12 @@ export function EventsDetail({
           </h2>
           <div className="num mt-1 text-small text-text-soft">
             {formatEventLine(
-              { date: event.date, time: event.time, upcoming: event.state === "upcoming" },
+              {
+                date: event.date,
+                time: event.time,
+                endTime: event.endTime,
+                upcoming: event.state === "upcoming",
+              },
               today,
             )}
           </div>

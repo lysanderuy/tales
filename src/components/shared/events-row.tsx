@@ -38,7 +38,7 @@ export function EventsRow({ event, today, selected, onSelect }: EventsRowProps) 
           {event.title}
         </span>
         <span className="num block truncate text-caption text-text-faint">
-          {formatEventMeta(event.date, event.time, today)}
+          {formatEventMeta(event.date, event.time, today, event.endTime)}
         </span>
       </span>
       {trailing ? (

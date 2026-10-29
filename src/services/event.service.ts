@@ -61,7 +61,11 @@ function dayNumber(dateKey: string): number {
 }
 
 function stateOf(row: Event, now: Date, timeZone: string): EventState {
-  return eventState({ date: row.date, time: row.time, closedAt: row.closedAt }, now, timeZone);
+  return eventState(
+    { date: row.date, time: row.time, endTime: row.endTime, closedAt: row.closedAt },
+    now,
+    timeZone,
+  );
 }
 
 async function loadCovers(
@@ -91,6 +95,7 @@ function toSummary(
     type: row.type,
     date: row.date,
     time: clockOf(row.time),
+    endTime: clockOf(row.endTime),
     state: stateOf(row, now, timeZone),
     closedAt: row.closedAt ? row.closedAt.toISOString() : null,
     coverIds,
@@ -238,6 +243,7 @@ export const eventService = {
           type: input.type ?? null,
           date: input.date,
           time: input.time ?? null,
+          endTime: input.endTime ?? null,
           note: input.note ?? null,
         })
         .returning({ id: events.id });
@@ -249,11 +255,20 @@ export const eventService = {
   async update(userId: string, id: string, patch: UpdateEventInput): Promise<EventDetailResponse> {
     return db.transaction(async (tx) => {
       const [row] = await tx
-        .select({ id: events.id })
+        .select({ id: events.id, time: events.time, endTime: events.endTime })
         .from(events)
         .where(owned(events, userId, eq(events.id, id)))
         .for("update");
       if (!row) throw new AppError(404, messages.notFound);
+      const nextTime = patch.time === undefined ? clockOf(row.time) : patch.time;
+      const requestedEnd = patch.endTime === undefined ? clockOf(row.endTime) : patch.endTime;
+      if (nextTime === null && patch.endTime != null) {
+        throw new AppError(422, messages.invalidRequest);
+      }
+      const nextEnd = nextTime === null ? null : requestedEnd;
+      if (nextEnd !== null && nextEnd === nextTime) {
+        throw new AppError(422, messages.invalidRequest);
+      }
       if (patch.coverIds !== undefined) await assertNodesOwned(tx, userId, patch.coverIds);
 
       await tx
@@ -263,6 +278,7 @@ export const eventService = {
           ...(patch.type !== undefined && { type: patch.type }),
           ...(patch.date !== undefined && { date: patch.date }),
           ...(patch.time !== undefined && { time: patch.time }),
+          ...((patch.time !== undefined || patch.endTime !== undefined) && { endTime: nextEnd }),
           ...(patch.note !== undefined && { note: patch.note }),
           updatedAt: new Date(),
         })

@@ -36,6 +36,7 @@ export function EventsAddDialog({
         title: value.title,
         date: value.date,
         time: value.time,
+        endTime: value.endTime,
         coverIds: value.coverIds,
       });
       showToast(messages.eventsSaved);
@@ -51,7 +52,15 @@ export function EventsAddDialog({
       {(onOverlayChange) => (
         <div className="mt-6">
           <EventsForm
-            initial={{ title: "", date: today, time: "", covers: [null], note: "", marks: {} }}
+            initial={{
+              title: "",
+              date: today,
+              time: "",
+              endTime: "",
+              covers: [null],
+              note: "",
+              marks: {},
+            }}
             today={today}
             index={index}
             closed={false}
