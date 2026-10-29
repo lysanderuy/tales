@@ -42,6 +42,35 @@ describe("createEventSchema", () => {
   });
 });
 
+describe("event end time", () => {
+  const base = { title: "Preboard 1", date: "2026-03-02" };
+
+  it("needs a start and differs from it on create", () => {
+    expect(createEventSchema.safeParse({ ...base, time: "09:00", endTime: "12:00" }).success).toBe(
+      true,
+    );
+    expect(createEventSchema.safeParse({ ...base, time: "22:00", endTime: "01:00" }).success).toBe(
+      true,
+    );
+    expect(createEventSchema.safeParse({ ...base, time: "09:00", endTime: "09:00" }).success).toBe(
+      false,
+    );
+    expect(createEventSchema.safeParse({ ...base, endTime: "12:00" }).success).toBe(false);
+    expect(createEventSchema.safeParse({ ...base, time: null, endTime: "12:00" }).success).toBe(
+      false,
+    );
+    expect(createEventSchema.safeParse({ ...base, time: "09:00", endTime: "9:00" }).success).toBe(
+      false,
+    );
+  });
+  it("checks the pair on update when both are sent", () => {
+    expect(updateEventSchema.safeParse({ endTime: "12:00" }).success).toBe(true);
+    expect(updateEventSchema.safeParse({ time: null, endTime: null }).success).toBe(true);
+    expect(updateEventSchema.safeParse({ time: null, endTime: "12:00" }).success).toBe(false);
+    expect(updateEventSchema.safeParse({ time: "09:00", endTime: "09:00" }).success).toBe(false);
+  });
+});
+
 describe("updateEventSchema", () => {
   it("needs at least one field", () => {
     expect(updateEventSchema.safeParse({}).success).toBe(false);

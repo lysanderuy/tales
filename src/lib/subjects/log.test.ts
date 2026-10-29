@@ -14,7 +14,7 @@ describe("formatLogWhen", () => {
       now,
       labels,
     );
-    expect(text).toBe("01:30–02:15 · Today");
+    expect(text).toBe("1:30–2:15am · Today");
   });
 
   it("labels the previous local day", () => {
@@ -25,7 +25,7 @@ describe("formatLogWhen", () => {
       now,
       labels,
     );
-    expect(text).toBe("09:00–10:00 · Yesterday");
+    expect(text).toBe("9:00–10:00am · Yesterday");
   });
 
   it("falls back to a short date for older days", () => {
@@ -36,6 +36,6 @@ describe("formatLogWhen", () => {
       now,
       labels,
     );
-    expect(text).toBe("09:00–10:00 · Mon Mar 2");
+    expect(text).toBe("9:00–10:00am · Mon Mar 2");
   });
 });

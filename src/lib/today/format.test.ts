@@ -84,7 +84,7 @@ describe("date labels", () => {
       "Sat Oct 24 · in 5 days",
     );
     expect(formatEventSub({ date: "2026-10-19", time: "09:00", daysAway: 0 })).toBe(
-      "Mon Oct 19, 09:00 · today",
+      "Mon Oct 19, 9:00am · today",
     );
   });
 });
@@ -106,7 +106,7 @@ describe("formatTimeRanges", () => {
         ],
         "now",
       ),
-    ).toBe("13:00–13:40, 15:00–now");
+    ).toBe("1:00–1:40pm, 3:00pm–now");
   });
 });
 

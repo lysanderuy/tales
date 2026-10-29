@@ -1,6 +1,59 @@
 import { describe, expect, it } from "vitest";
 
-import { parseTimeOfDay } from "./time";
+import {
+  endOfSpan,
+  formatClockRange,
+  formatTimeOfDay,
+  minutesBetween,
+  parseTimeOfDay,
+} from "./time";
+
+describe("formatTimeOfDay", () => {
+  it("formats lowercase with no space", () => {
+    expect(formatTimeOfDay("00:00")).toBe("12:00am");
+    expect(formatTimeOfDay("08:30")).toBe("8:30am");
+    expect(formatTimeOfDay("12:00")).toBe("12:00pm");
+    expect(formatTimeOfDay("13:05")).toBe("1:05pm");
+    expect(formatTimeOfDay("23:59")).toBe("11:59pm");
+  });
+});
+
+describe("endOfSpan", () => {
+  it("adds minutes to a start", () => {
+    expect(endOfSpan("08:00", 90)).toEqual({ clock: "09:30", nextDay: false });
+  });
+
+  it("wraps past midnight", () => {
+    expect(endOfSpan("22:00", 180)).toEqual({ clock: "01:00", nextDay: true });
+    expect(endOfSpan("22:00", 120)).toEqual({ clock: "00:00", nextDay: true });
+  });
+});
+
+describe("minutesBetween", () => {
+  it("measures forward, wrapping past midnight", () => {
+    expect(minutesBetween("08:00", "09:30")).toBe(90);
+    expect(minutesBetween("22:00", "01:00")).toBe(180);
+    expect(minutesBetween("08:00", "08:00")).toBe(1440);
+  });
+});
+
+describe("formatClockRange", () => {
+  it("shows a start alone, or a start and end", () => {
+    expect(formatClockRange("09:00", null)).toBe("9:00am");
+    expect(formatClockRange("22:00", "01:00")).toBe("10:00pm–1:00am");
+  });
+
+  it("drops the first am/pm when both sides match", () => {
+    expect(formatClockRange("09:00", "11:30")).toBe("9:00–11:30am");
+    expect(formatClockRange("22:00", "23:15")).toBe("10:00–11:15pm");
+    expect(formatClockRange("11:30", "12:15")).toBe("11:30am–12:15pm");
+  });
+
+  it("uses the running label when there is no end", () => {
+    expect(formatClockRange("09:00", null, "")).toBe("9:00am–");
+    expect(formatClockRange("09:00", null, "now")).toBe("9:00am–now");
+  });
+});
 
 function ok(raw: string): string | null | undefined {
   const result = parseTimeOfDay(raw);

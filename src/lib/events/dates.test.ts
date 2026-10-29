@@ -31,16 +31,26 @@ describe("formatShortDate", () => {
 
 describe("formatEventMeta", () => {
   it("joins date and time", () => {
-    expect(formatEventMeta("2026-03-11", "09:00", today)).toBe("Mar 11 · 09:00");
+    expect(formatEventMeta("2026-03-11", "09:00", today)).toBe("Mar 11 · 9:00am");
     expect(formatEventMeta("2026-03-11", null, today)).toBe("Mar 11");
+    expect(formatEventMeta("2026-03-11", "09:00", today, "12:00")).toBe("Mar 11 · 9:00am–12:00pm");
   });
 });
 
 describe("formatEventLine", () => {
   it("adds the relative day for upcoming events", () => {
     expect(formatEventLine({ date: "2026-03-11", time: "09:00", upcoming: true }, today)).toBe(
-      "Wed, Mar 11 · 09:00 · in 9 days",
+      "Wed, Mar 11 · 9:00am · in 9 days",
     );
+  });
+
+  it("shows the span when there is an end time", () => {
+    expect(
+      formatEventLine(
+        { date: "2026-03-11", time: "09:00", endTime: "12:00", upcoming: true },
+        today,
+      ),
+    ).toBe("Wed, Mar 11 · 9:00am–12:00pm · in 9 days");
   });
 
   it("leaves it off for past events", () => {

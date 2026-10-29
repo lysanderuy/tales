@@ -28,6 +28,33 @@ describe("eventState with a time", () => {
   });
 });
 
+describe("eventState with an end time", () => {
+  const event = { date: "2026-03-02", time: "09:00", endTime: "12:00", closedAt: null };
+
+  it("stays upcoming after the start until the end", () => {
+    expect(eventState(event, new Date("2026-03-02T03:59:59.999Z"), manila)).toBe("upcoming");
+  });
+
+  it("is ready at the end instant", () => {
+    expect(eventState(event, new Date("2026-03-02T04:00:00.000Z"), manila)).toBe("ready_to_close");
+  });
+
+  it("ends the next day when the end is earlier than the start", () => {
+    const overnight = { date: "2026-03-02", time: "22:00", endTime: "01:00", closedAt: null };
+    expect(eventState(overnight, new Date("2026-03-02T16:59:59.999Z"), manila)).toBe("upcoming");
+    expect(eventState(overnight, new Date("2026-03-02T17:00:00.000Z"), manila)).toBe(
+      "ready_to_close",
+    );
+  });
+
+  it("accepts HH:mm:ss", () => {
+    const withSeconds = { ...event, time: "09:00:00", endTime: "12:00:00" };
+    expect(eventState(withSeconds, new Date("2026-03-02T04:00:00Z"), manila)).toBe(
+      "ready_to_close",
+    );
+  });
+});
+
 describe("eventState with a date only", () => {
   const event = { date: "2026-03-02", time: null, closedAt: null };
 

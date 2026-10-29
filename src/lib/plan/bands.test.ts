@@ -67,4 +67,10 @@ describe("startsOffPlan", () => {
     expect(startsOffPlan("08:00", "07:51")).toBe(false);
     expect(startsOffPlan("08:00", "07:50")).toBe(true);
   });
+
+  it("measures the gap across midnight", () => {
+    expect(startsOffPlan("23:55", "00:05")).toBe(true);
+    expect(startsOffPlan("23:55", "00:04")).toBe(false);
+    expect(startsOffPlan("00:05", "23:56")).toBe(false);
+  });
 });

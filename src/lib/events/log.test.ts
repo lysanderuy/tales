@@ -42,6 +42,6 @@ describe("spansMultipleRoots", () => {
 
 describe("formatSessionWhen", () => {
   it("renders the clock range and weekday date in the zone", () => {
-    expect(formatSessionWhen(session("a", 1), "Asia/Manila")).toBe("09:15–10:00 · Mon Mar 2");
+    expect(formatSessionWhen(session("a", 1), "Asia/Manila")).toBe("9:15–10:00am · Mon Mar 2");
   });
 });

@@ -73,26 +73,26 @@ describe("staleDayLabel and staleClockLabel", () => {
   it("shows only the time on the same day in the zone", () => {
     const startedAt = new Date("2026-06-10T01:00:00Z");
     expect(staleDayLabel(startedAt, now, MANILA)).toBeNull();
-    expect(staleClockLabel(startedAt, now, MANILA)).toBe("09:00");
+    expect(staleClockLabel(startedAt, now, MANILA)).toBe("9:00am");
   });
 
   it("prefixes a short day label on a previous day", () => {
     const earlier = new Date("2026-06-09T13:40:00Z"); // 21:40 Jun 9 Manila
     expect(staleDayLabel(earlier, now, MANILA)).toBe("Tue 9");
-    expect(staleClockLabel(earlier, now, MANILA)).toBe("Tue 9 21:40");
+    expect(staleClockLabel(earlier, now, MANILA)).toBe("Tue 9 9:40pm");
   });
 
   it("compares days in the zone, not in UTC", () => {
     const utcSameDay = new Date("2026-06-10T00:30:00Z"); // 08:30 Jun 10 Manila, 20:30 Jun 9 New York
-    expect(staleClockLabel(utcSameDay, now, MANILA)).toBe("08:30");
-    expect(staleClockLabel(utcSameDay, now, NEW_YORK)).toBe("Tue 9 20:30");
+    expect(staleClockLabel(utcSameDay, now, MANILA)).toBe("8:30am");
+    expect(staleClockLabel(utcSameDay, now, NEW_YORK)).toBe("Tue 9 8:30pm");
   });
 
   it("splits at local midnight in the zone", () => {
     const morning = new Date("2026-06-09T16:05:00Z"); // 00:05 Jun 10 Manila
     const justBefore = new Date("2026-06-09T15:59:00Z"); // 23:59 Jun 9 Manila
     const justAfter = new Date("2026-06-09T16:01:00Z"); // 00:01 Jun 10 Manila
-    expect(staleClockLabel(justBefore, morning, MANILA)).toBe("Tue 9 23:59");
-    expect(staleClockLabel(justAfter, morning, MANILA)).toBe("00:01");
+    expect(staleClockLabel(justBefore, morning, MANILA)).toBe("Tue 9 11:59pm");
+    expect(staleClockLabel(justAfter, morning, MANILA)).toBe("12:01am");
   });
 });
