@@ -3,7 +3,7 @@
 **Status:** Draft v0.6
 **Date:** Nov 8, 2026
 **Owner:** Lysander
-**Inputs:** tales_brief.md, tales_competitors.md, design discussion on Oct 18 and 19, 2026, the built app, the design tokens (src/styles/tokens.css, described in docs/design-system.md), and photos of review center lecture guides (CRPDC Immunology and Serology / Blood Banking; Padayon Notes Clinical Microscopy; Cerebro Lecture Guides for the March 2027 MTLE).
+**Inputs:** tales_brief.md, tales_competitors.md, design discussion on Oct 18 and 19, 2026, the built app, the design tokens (src/styles/tokens.css, described in docs/tales_design-system.md), and photos of review center lecture guides (CRPDC Immunology and Serology / Blood Banking; Padayon Notes Clinical Microscopy; Cerebro Lecture Guides for the March 2027 MTLE).
 
 **What changed in v0.6:** the body now describes only what is live. Specified features that have no UI yet moved to section 13, "Planned (not yet live)", with their original text. Entity fields, limits and account features match the code. Flows are numbered 1 to 13 in order, and the Today list, Events, Subjects, Plan and end screen text was checked against the code.
 
@@ -693,7 +693,7 @@ A small arrow next to Start offers 25, 45, 60 or Custom minutes. Choosing one st
 
 ### 6.11 Visual design
 
-- Tokens live in `src/styles/tokens.css` and are described in `docs/design-system.md`.
+- Tokens live in `src/styles/tokens.css` and are described in `docs/tales_design-system.md`.
 - In short: flat, pastel sage ground, one deep-green card per screen, DM Sans, large soft numerals for time, circular icon buttons, hairline borders. Only focus rings and the avatar crop use shadow.
 - Light and dark themes. Dark mode follows the saved theme cookie. A first visit is light; there is no default from the OS preference.
 - Overtime is apricot. A muted red exists for system messages only (a failed save, a confirm to delete). It never appears on study time, Subjects or Progress.

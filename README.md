@@ -2,10 +2,10 @@
 
 A calm study planner and timer for medtech board review. Product requirements and copy rules live in [`docs/tales_prd.md`](docs/tales_prd.md).
 
-Docs:
+Docs (all files in `docs/` use the `tales_` prefix):
 
 - [`docs/tales_prd.md`](docs/tales_prd.md) — product requirements and copy rules
-- [`docs/design-system.md`](docs/design-system.md) — design system
+- [`docs/tales_design-system.md`](docs/tales_design-system.md) — design system
 
 Stack: Next.js 16 + Supabase + Drizzle + Zod. Needs Node 22 (what CI uses).
 
@@ -154,7 +154,7 @@ src/
 ├── lib/
 │   ├── api/              # client.ts (fetch wrapper) + response.ts (envelope helpers) + openapi.ts (spec builder)
 │   ├── query/            # QueryClient provider (wired in app/layout.tsx)
-│   ├── supabase/         # client.ts (browser), server.ts (RSC/routes), proxy.ts (session refresh), admin.ts (service-role, server-only), admin.ts (service-role client)
+│   ├── supabase/         # client.ts (browser), server.ts (RSC/routes), proxy.ts (session refresh), admin.ts (service-role, server-only)
 │   ├── plan/ timer/ today/ picker/ reports/ subjects/   # framework-free domain helpers (unit-tested)
 │   ├── daily/ events/ exam/ forms/ outline/ settings/ sound/ time/   # more domain helpers
 │   ├── cn.ts             # class-name helper
