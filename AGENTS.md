@@ -44,7 +44,7 @@ page/client component → TanStack Query hook (src/hooks) → api wrapper (src/l
 
 ## Naming
 
-`*.service.ts`, `*.validator.ts`, `*.store.ts`, `use-*.ts` (one hook per file; query-key factories may sit beside it), `*.test.ts` (colocated next to the file it tests). `src/components/ui` = generic primitives; `src/components/shared` = app-specific composites.
+`*.service.ts`, `*.validator.ts`, `*.store.ts`, `use-*.ts` (one resource per file: its query hook, mutations, query keys and cache helpers; unrelated hooks get their own file), `*.test.ts` (colocated next to the file it tests). `src/components/ui` = generic primitives; `src/components/shared` = app-specific composites.
 
 ## Comments
 
