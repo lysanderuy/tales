@@ -2,21 +2,27 @@
 
 A calm study planner and timer for medtech board review. Product requirements and copy rules live in [`docs/tales_prd.md`](docs/tales_prd.md).
 
-Stack: Next.js 16 + Supabase + Drizzle + Zod.
+Docs:
 
-| Layer        | Tech                                                              |
-| ------------ | ----------------------------------------------------------------- |
-| Frontend     | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4 |
-| Database     | Supabase (PostgreSQL)                                             |
-| Auth         | Supabase Auth (`@supabase/ssr`, cookie-based sessions)            |
-| ORM          | Drizzle ORM + drizzle-kit migrations                              |
-| Validation   | Zod v4                                                            |
-| Server state | TanStack Query v5 (API data: caching, mutations)                  |
-| Client state | Zustand (UI-only state: modals, sidebar, filters)                 |
-| API docs     | OpenAPI 3.1 (`zod-openapi`) + Scalar (`/api/docs`)                |
-| Testing      | Vitest (unit tests, colocated `*.test.ts`)                        |
-| Code quality | ESLint + Prettier + Husky/lint-staged pre-commit                  |
-| CI           | GitHub Actions — typecheck/lint/test + PR description bot         |
+- [`docs/tales_prd.md`](docs/tales_prd.md) — product requirements and copy rules
+- [`docs/design-system.md`](docs/design-system.md) — design system
+
+Stack: Next.js 16 + Supabase + Drizzle + Zod. Needs Node 22 (what CI uses).
+
+| Layer         | Tech                                                              |
+| ------------- | ----------------------------------------------------------------- |
+| Frontend      | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4 |
+| Database      | Supabase (PostgreSQL)                                             |
+| Auth          | Supabase Auth (`@supabase/ssr`, cookie-based sessions)            |
+| ORM           | Drizzle ORM + drizzle-kit migrations                              |
+| Drag and drop | `@dnd-kit`                                                        |
+| Validation    | Zod v4                                                            |
+| Server state  | TanStack Query v5 (API data: caching, mutations)                  |
+| Client state  | Zustand (UI-only state: modals, sidebar, filters)                 |
+| API docs      | OpenAPI 3.1 (`zod-openapi`) + Scalar (`/api/docs`)                |
+| Testing       | Vitest (unit tests, colocated `*.test.ts`)                        |
+| Code quality  | ESLint + Prettier + Husky/lint-staged pre-commit                  |
+| CI            | GitHub Actions — typecheck/lint/test + PR description bot         |
 
 ## Quick start
 
@@ -27,11 +33,12 @@ Stack: Next.js 16 + Supabase + Drizzle + Zod.
    cp .env.example .env.local   # .env also works
    ```
 
-   | Variable                                    | Value                                                 |
-   | ------------------------------------------- | ----------------------------------------------------- |
-   | `NEXT_PUBLIC_SUPABASE_URL` / `..._ANON_KEY` | Dashboard → Project Settings → API                    |
-   | `DATABASE_URL`                              | **Transaction pooler** URL (port 6543) — app runtime  |
-   | `DIRECT_URL`                                | **Session pooler** URL (port 5432) — drizzle-kit only |
+   | Variable                                    | Value                                                                                             |
+   | ------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+   | `NEXT_PUBLIC_SUPABASE_URL` / `..._ANON_KEY` | Dashboard → Project Settings → API                                                                |
+   | `DATABASE_URL`                              | **Transaction pooler** URL (port 6543) — app runtime                                              |
+   | `DIRECT_URL`                                | **Session pooler** URL (port 5432) — drizzle-kit only                                             |
+   | `SUPABASE_SERVICE_ROLE_KEY`                 | Dashboard → Project Settings → API — server-only; account deletion (admin API) and avatar storage |
 
    Don't swap the pooler ports: migrations fail through the transaction
    pooler (no prepared statements — the app client runs `prepare: false`
@@ -49,6 +56,8 @@ Stack: Next.js 16 + Supabase + Drizzle + Zod.
    ```bash
    npm run db:migrate   # applies migrations + runs the RLS guardrail
    ```
+
+   Migrations `0023`/`0024` also create the public `avatars` Storage bucket (2 MB limit, PNG/JPEG/WebP only). No manual step; it is uploaded to with the service role key.
 
 5. `npm run dev` — sign up at `/signup`, confirm via email, land on `/today`.
 
@@ -126,7 +135,8 @@ Tests are excluded on purpose — kept fast locally; they run in CI instead.
 src/
 ├── app/                  # Routes, layouts — frontend only
 │   ├── (auth)/           # Login, signup, forgot/reset password (route group)
-│   ├── (app)/            # Signed-in app shell: today, plan, subjects (route group)
+│   ├── (app)/            # Signed-in app shell: today, plan, subjects, events, settings (route group)
+│   ├── manifest.ts       # PWA web app manifest
 │   ├── error.tsx         # Error boundary (wire Sentry etc. here)
 │   ├── global-error.tsx  # Root-layout error fallback (self-contained)
 │   ├── not-found.tsx     # 404
@@ -144,23 +154,27 @@ src/
 ├── lib/
 │   ├── api/              # client.ts (fetch wrapper) + response.ts (envelope helpers) + openapi.ts (spec builder)
 │   ├── query/            # QueryClient provider (wired in app/layout.tsx)
-│   ├── supabase/         # client.ts (browser), server.ts (RSC/routes), proxy.ts (session refresh)
-│   ├── plan/ timer/ today/ picker/ reports/ subjects/ …   # framework-free domain helpers (unit-tested)
+│   ├── supabase/         # client.ts (browser), server.ts (RSC/routes), proxy.ts (session refresh), admin.ts (service-role, server-only), admin.ts (service-role client)
+│   ├── plan/ timer/ today/ picker/ reports/ subjects/   # framework-free domain helpers (unit-tested)
+│   ├── daily/ events/ exam/ forms/ outline/ settings/ sound/ time/   # more domain helpers
+│   ├── cn.ts             # class-name helper
 │   ├── copy/             # banned-words check for on-screen copy
 │   ├── messages.ts       # all user-facing strings
-│   └── env.ts            # Zod-validated env vars (server only, lazy)
+│   └── env.ts            # Zod-validated env vars (lazy; not `server-only`)
 ├── services/             # Business logic (*.service.ts)
 ├── validators/           # Zod schemas (*.validator.ts) — input source of truth
 ├── types/                # Shared TS types (api.ts envelope, ...)
+├── styles/               # tokens.css (design tokens)
 ├── db/
 │   ├── index.ts          # Drizzle client (postgres.js, pooler-safe, lazy)
-│   ├── schema/           # Table definitions (one file per table)
+│   ├── owned.ts          # user-ownership query helper
+│   ├── schema/           # Table definitions (one file per resource; 15 tables in 7 files)
 │   └── migrations/       # drizzle-kit output — only edit --custom migrations
 └── proxy.ts              # Next.js 16 proxy, ex-middleware (auth session refresh)
 ```
 
 Outside `src/`: `scripts/` (RLS guardrail + auth debug), `drizzle.config.ts`
-(schema path, migration dir, `DIRECT_URL`).
+(schema path, migration dir, `DIRECT_URL`), `vitest.config.ts`.
 
 The `profiles` slice (table, validator, service, route, hook) is the
 smallest end-to-end example of the layering.
@@ -176,7 +190,7 @@ protected `/today` → logout.
   in). Login and signup offer a resend button; login surfaces callback errors
   (e.g. expired links) from `?error=`.
 - **Route protection**: `src/proxy.ts` redirects unauthenticated hits on
-  `protectedPrefixes` (extend per project); pages still check `getUser()`
+  `protectedPrefixes` (`/today`, `/plan`, `/subjects`, `/events`, `/settings`, `/reset-password`); pages still check `getUser()`
   themselves — defense in depth.
 - **Layering exception**: auth pages, plus `/api/auth/callback` and
   `/api/auth/logout`, call Supabase Auth directly via the SDK (it manages
@@ -198,7 +212,7 @@ and fails if any public table has RLS disabled.
 
 ## Database workflow
 
-Define tables in `src/db/schema/` (one file per table, export from
+Define tables in `src/db/schema/` (one file per resource, export from
 `schema/index.ts`), then:
 
 ```bash
@@ -230,6 +244,7 @@ create a custom migration: `npx drizzle-kit generate --custom --name=...`.
 | Script                    | Purpose                                                    |
 | ------------------------- | ---------------------------------------------------------- |
 | `dev` / `build` / `start` | Next.js                                                    |
+| `prepare`                 | Runs `husky` (installs git hooks on `npm install`)         |
 | `lint` / `typecheck`      | ESLint / `tsc --noEmit`                                    |
 | `test` / `test:watch`     | Vitest — run once / watch mode                             |
 | `format` / `format:check` | Prettier — write / check-only                              |

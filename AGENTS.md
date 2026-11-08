@@ -35,16 +35,16 @@ page/client component → TanStack Query hook (src/hooks) → api wrapper (src/l
 ## Hard rules
 
 - **Every new table's migration must include `ALTER TABLE "<name>" ENABLE ROW LEVEL SECURITY;`** (no policies needed). `npm run db:migrate` runs a guardrail that fails otherwise. Reason: Drizzle bypasses RLS, but Supabase's PostgREST (`/rest/v1`) exposes any public table without RLS to the anon key.
-- This is Next 16: the request middleware file is `src/proxy.ts` (exports `proxy`), NOT `middleware.ts`. `cookies()` and route params are async — await them.
+- This is Next 16: the request middleware file is `src/proxy.ts` (default-exports `proxy`), NOT `middleware.ts`. `cookies()` and route params are async — await them.
 - Migrations only via drizzle-kit (`db:generate`/`db:migrate`); never hand-edit `src/db/migrations` except `--custom` migrations. drizzle-kit uses `DIRECT_URL` (session pooler, 5432); the app uses `DATABASE_URL` (transaction pooler, 6543, `prepare: false`).
-- Server env vars go through `src/lib/env.ts` (Zod-validated, server-only import). Client code uses `process.env.NEXT_PUBLIC_*` directly.
+- Server env vars go through `src/lib/env.ts` (Zod-validated, lazy; no `server-only` import, so don't import it from client code). `DIRECT_URL` is read only by `drizzle.config.ts` and `scripts/*.mjs`, not by `env.ts`. Client code uses `process.env.NEXT_PUBLIC_*` directly.
 - Server state lives in TanStack Query; client-only UI state in Zustand (`src/stores/*.store.ts`). Never mirror API data into a store.
 - New protected routes: add the prefix to `protectedPrefixes` in `src/lib/supabase/proxy.ts` AND check `getUser()` in the page/route itself.
 - `/api/openapi.json`, `/api/auth/callback` and `/api/auth/logout` are the deliberate exceptions to "every route returns `ApiResponse<T>`" — openapi.json serves the raw spec for external tooling (Scalar, codegen); the auth routes are browser redirects, not JSON calls. `/api/docs` (Scalar UI) and `/api/openapi.json` are public/unauthenticated by design; gate them if that's ever a concern. The spec (`src/lib/api/openapi.ts`) is hand-maintained, not derived from route files — keep it in sync per the "Adding a resource" step above.
 
 ## Naming
 
-`*.service.ts`, `*.validator.ts`, `*.store.ts`, `use-*.ts` (one hook per file), `*.test.ts` (colocated next to the file it tests). `src/components/ui` = generic primitives; `src/components/shared` = app-specific composites.
+`*.service.ts`, `*.validator.ts`, `*.store.ts`, `use-*.ts` (one hook per file; query-key factories may sit beside it), `*.test.ts` (colocated next to the file it tests). `src/components/ui` = generic primitives; `src/components/shared` = app-specific composites.
 
 ## Comments
 
